@@ -43,6 +43,8 @@ def get_data(file_name, rprt, one_hour_fte=164):
                 (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
             ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
         if rprt == 3:
+            # date_range = pd.date_range(start='04-01-2024', end='04-10-2024')
+            # fr = fr[pd.to_datetime(fr['Дата']).isin(date_range)]
             fr = fr.sort_values(['Проект', 'ФИО', 'Дата'])
         else:
             # fr = round(fr.groupby(['Проект', 'ФИО'])['Трудозатрады за день'].sum(), 2)
