@@ -26,7 +26,8 @@ def get_data(file_name, rprt, one_hour_fte=164):
     global fr
     num_row_header: Callable[[Any], int] = lambda rprt: 0 if rprt == 1 else 1  # if rprt == 2 else 1
 
-    df = pd.read_excel(file_name, header=num_row_header(rprt))
+    df = pd.read_excel(file_name, header=num_row_header(rprt),
+                       parse_dates=['Дата'],  date_format='%d.%m.%Y')
     if rprt == 1:
         headers = ['Проект', 'План, FTE', 'Пользователь', 'Фактические трудозатраты (час.) (Сумма)',
                    'Кол-во штатных единиц']
@@ -44,7 +45,7 @@ def get_data(file_name, rprt, one_hour_fte=164):
         fr = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
                 (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
             ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
-        fr['Дата'] = pd.to_datetime(fr['Дата'], format='%d.%m.%Y')
+        # fr['Дата'] = pd.to_datetime(fr['Дата'], format='%d.%m.%Y')
 
         if rprt == 3:
             date_range = pd.date_range(start='2024-04-01', end='2024-04-10')
