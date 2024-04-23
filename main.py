@@ -22,6 +22,8 @@ text.tag_config('title', justify=LEFT,
 
 def get_data(file_name, rprt, one_hour_fte=164):
     # Данные по ресурсным планам и списанию трудозатрат сотрудников за период
+
+    global fr
     num_row_header: Callable[[Any], int] = lambda rprt: 0 if rprt == 1 else 1  # if rprt == 2 else 1
 
     df = pd.read_excel(file_name, header=num_row_header(rprt))
@@ -42,9 +44,11 @@ def get_data(file_name, rprt, one_hour_fte=164):
         fr = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
                 (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
             ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
+        fr['Дата'] = pd.to_datetime(fr['Дата'], format='%d.%m.%Y')
+
         if rprt == 3:
-            # date_range = pd.date_range(start='04-01-2024', end='04-10-2024')
-            # fr = fr[pd.to_datetime(fr['Дата']).isin(date_range)]
+            date_range = pd.date_range(start='2024-04-01', end='2024-04-10')
+            fr = fr[fr['Дата'].isin(date_range)]
             fr = fr.sort_values(['Проект', 'ФИО', 'Дата'])
         else:
             # fr = round(fr.groupby(['Проект', 'ФИО'])['Трудозатрады за день'].sum(), 2)
