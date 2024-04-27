@@ -60,7 +60,7 @@ def get_data(file_name, rprt, one_hour_fte=164):
             # fr = round(fr.groupby(['Проект', 'ФИО'])['Трудозатрады за день'].sum(), 2)
             fr = fr.groupby(['Проект', 'ФИО']).agg({'Дата': 'max', 'Трудозатрады за день': 'sum'})
 
-    if export_excel.get():
+    if export_excell:  # Checbox
         save_file = path.dirname(file_name) + '/output.xlsx'
         label.config(text=f"Файл сохранился в {save_file}")
         fr.to_excel(save_file, index=True)
@@ -71,7 +71,7 @@ def print_text(filename, rprt):
     return f'{filename}\n \n \n {get_data(filename, rprt=rprt)}'
 
 
-def cmbFunction(event):
+def cmb_function(event):
     filename = filedialog.askopenfilename()
     label.config(text="")
     text.delete(1.0, END)
@@ -79,22 +79,22 @@ def cmbFunction(event):
     if cmb.get() == reports[0]:
         msg = print_text(filename, rprt=1)
     if cmb.get() == reports[1]:
-        if export_excel.get():
+        if export_excell:  # export checkbox
             msg = print_text(filename, rprt=3)
         else:
             msg = print_text(filename, rprt=2)
 
     text.insert(5.0, msg)
-    # print(cmb.get())
 
 
+export_excell = tk.IntVar()
+reports = [
+            "Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период",
+            "Контроль заполнения факта за период"
+           ]
 
-export_excel = tk.IntVar()
-reports = ["Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период",
-           "Контроль заполнения факта за период"]
-
-c1 = tk.Checkbutton(frame, text='Экспорт в Excel', variable=export_excel,
-                    onvalue=1, offvalue=0)
+export_excell_checkbox = tk.Checkbutton(frame, text='Экспорт в Excel', onvalue=True, offvalue=False,
+                                        variable=export_excell)
 
 label1 = tk.Label(root, text="Отчеты", anchor="s")
 cmb = ttk.Combobox(frame, values=reports, state="readonly", width=50)
@@ -104,7 +104,7 @@ cmb.pack()
 frame.pack()
 
 cmb.set('Выбор из списка отчетов')
-cmb.bind('<<ComboboxSelected>>', cmbFunction)
+cmb.bind('<<ComboboxSelected>>', cmb_function)
 cmb["state"] = "readonly"
 
 # button = tk.Button(root, text="Открыть отчёт", command=on_button_click)
@@ -117,7 +117,7 @@ label1.pack()
 # chk2.grid(column=0, row=3, pady=5)
 # button.grid(column=0, row=4, columnspan=2, pady=30)
 
-c1.pack()
+export_excell_checkbox.pack()
 # chk1.pack()
 # chk2.pack()
 # button.pack()
