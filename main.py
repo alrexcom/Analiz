@@ -18,11 +18,8 @@ root.title("Анализ отчётов")
 
 frame = tk.Frame(root)
 
+
 # root.withdraw() # Скрыть главное окно, если вы хотите, чтобы диалог был показан без главного окна
-text = Text(width=200, height=50, bg="darkgreen",
-            fg='white', wrap=WORD)
-text.tag_config('title', justify=LEFT,
-                font=("Verdana", 24, 'bold'))
 
 
 def get_data(file_name, rprt, one_hour_fte=164):
@@ -89,42 +86,34 @@ def cmb_function(event):
 
 export_excell = tk.IntVar()
 reports = [
-            "Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период",
-            "Контроль заполнения факта за период"
-           ]
+    "Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период",
+    "Контроль заполнения факта за период"
+]
 
 export_excell_checkbox = tk.Checkbutton(frame, text='Экспорт в Excel', onvalue=True, offvalue=False,
-                                        variable=export_excell)
-
-label1 = tk.Label(root, text="Отчеты", anchor="s")
-cmb = ttk.Combobox(frame, values=reports, state="readonly", width=50)
-cmb.pack()
-
-
-frame.pack()
-
+                                        variable=export_excell, )
+label1 = tk.Label(frame, text="Отчеты", font=("Helvetica", 16))
+cmb = ttk.Combobox(frame, values=reports, state="readonly", width=60)
 cmb.set('Выбор из списка отчетов')
 cmb.bind('<<ComboboxSelected>>', cmb_function)
 cmb["state"] = "readonly"
+label = tk.Label(frame, text="")
 
-# button = tk.Button(root, text="Открыть отчёт", command=on_button_click)
-label = tk.Label(root, text="")
+text = Text(width=200, height=50, bg="darkgreen",
+            fg='white', wrap=WORD)
+text.tag_config('title', justify=LEFT,
+                font=("Verdana", 24, 'bold'))
 
-label1.pack()
-# label1.grid(column=0, row=1, pady=10)
-# c1.grid(column=0, row=1, pady=10)
-# chk1.grid(column=0, row=2, pady=5)
-# chk2.grid(column=0, row=3, pady=5)
-# button.grid(column=0, row=4, columnspan=2, pady=30)
+label1.grid(column=0, row=0, padx=1, pady=0)
+export_excell_checkbox.grid(column=1, row=0)
+cmb.grid(column=0, row=1, padx=1, columnspan=2)
+label.grid(column=0, row=2, padx=1, pady=0, columnspan=2)
+# text.grid(column=0, row=3, columnspan=2)
 
-export_excell_checkbox.pack()
-# chk1.pack()
-# chk2.pack()
-# button.pack()
-label.pack()
+
+
+
+frame.pack(side="top")
 text.pack()
-
-# frame.pack(side=tk.LEFT)
-
 # Запускаем основной цикл обработки событий
 frame.mainloop()
