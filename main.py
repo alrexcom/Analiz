@@ -2,6 +2,7 @@
 #  from base64 import b16decode
 # from ctypes.wintypes import INT
 from typing import Callable, Any
+from unittest import result
 
 import pandas as pd
 from os import path
@@ -18,102 +19,159 @@ root.title("Анализ отчётов")
 
 frame = tk.Frame(root)
 
-
 # root.withdraw() # Скрыть главное окно, если вы хотите, чтобы диалог был показан без главного окна
 
 
-def get_data(file_name, rprt, one_hour_fte=164):
-    # Данные по ресурсным планам и списанию трудозатрат сотрудников за период
+reports = [
+    {
+        "name": "Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период",
+        "header_row": 0,
+        "reportnumber": 1
+    },
+    {
+        "name": "Контроль заполнения факта за период",
+        "header_row": 1,
+        "reportnumber": 2
+    }
+]
 
-    global fr
-    num_row_header: Callable[[Any], int] = lambda rprt: 0 if rprt == 1 else 1  # if rprt == 2 else 1
 
-    df = pd.read_excel(file_name, header=num_row_header(rprt),
-                       parse_dates=['Дата'], date_format='%d.%m.%Y')
-    if rprt == 1:
-        headers = ['Проект', 'План, FTE', 'Пользователь', 'Фактические трудозатраты (час.) (Сумма)',
-                   'Кол-во штатных единиц']
+def print_text(filename, report):
+    try:
+        text.insert(5.0, f'{filename}\n \n \n {get_data(filename, rprt=report)}')
+    except Exception as e:
+        text.insert(5.0, f"Ошибка чтения файла {filename} \n {e}")
 
-        fr = df[headers].loc[df['Менеджер проекта'] == 'Тапехин Алексей Александрович']
 
-        fr['Факт, FTE'] = round(fr['Фактические трудозатраты (час.) (Сумма)'] / one_hour_fte, 2)
-        fr['Часы план'] = one_hour_fte * fr['План, FTE']
-        fr['Остаток часов'] = fr['Часы план'] - fr['Фактические трудозатраты (час.) (Сумма)']
-        fr = fr.groupby(['Проект', 'Пользователь', 'Кол-во штатных единиц', 'План, FTE', 'Часы план',
-                         'Факт, FTE', 'Остаток часов'])['Фактические трудозатраты (час.) (Сумма)'].sum()
-    # Контроль заполнения факта за период
-    elif rprt in (2, 3):
-        # df = pd.read_excel(file_name, header=1)
-        fr = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
-                (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
-            ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
-        # fr['Дата'] = pd.to_datetime(fr['Дата'], format='%d.%m.%Y')
-
-        if rprt == 3:
-            date_range = pd.date_range(start='2024-04-01', end='2024-04-10')
-            fr = fr[fr['Дата'].isin(date_range)]
-            fr = fr.sort_values(['Проект', 'ФИО', 'Дата'])
-        else:
-            # fr = round(fr.groupby(['Проект', 'ФИО'])['Трудозатрады за день'].sum(), 2)
-            fr = fr.groupby(['Проект', 'ФИО']).agg({'Дата': 'max', 'Трудозатрады за день': 'sum'})
-
-    if export_excell:  # Checbox
-        save_file = path.dirname(file_name) + '/output.xlsx'
-        label.config(text=f"Файл сохранился в {save_file}")
-        fr.to_excel(save_file, index=True)
+def report1(df, fte):
+    headers = ['Проект', 'План, FTE', 'Пользователь', 'Фактические трудозатраты (час.) (Сумма)',
+               'Кол-во штатных единиц']
+    fr = df[headers].loc[df['Менеджер проекта'] == 'Тапехин Алексей Александрович']
+    fr['Факт, FTE'] = round(fr['Фактические трудозатраты (час.) (Сумма)'] / fte, 2)
+    fr['Часы план'] = fte * fr['План, FTE']
+    fr['Остаток часов'] = fr['Часы план'] - fr['Фактические трудозатраты (час.) (Сумма)']
+    fr = fr.groupby(['Проект', 'Пользователь', 'Кол-во штатных единиц', 'План, FTE', 'Часы план',
+                     'Факт, FTE', 'Остаток часов'])['Фактические трудозатраты (час.) (Сумма)'].sum()
     return fr
 
 
-def print_text(filename, rprt):
-    return f'{filename}\n \n \n {get_data(filename, rprt=rprt)}'
+def report2(fr):
+    """
+    Контроль заполнения факта за период
+    """
+    fr = fr.groupby(['Проект', 'ФИО']).agg({'Дата': 'max', 'Трудозатрады за день': 'sum'})
+    return fr
+
+
+def report3(fr):
+    """
+            Контроль заполнения факта за период с экспортом
+    """
+    date_range = pd.date_range(start='2024-04-01', end='2024-04-30')
+    fr = fr[fr['Дата'].isin(date_range)]
+    fr = fr.sort_values(['Проект', 'ФИО', 'Дата'])
+    return fr
+
+
+def get_data(reportnumber, df, fte):
+    if reportnumber == 1:
+        fr = report1(df, fte)
+    elif reportnumber == 2:
+        fr = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
+                (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
+            ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
+        if export_excell_var.get() == 1:
+            fr = report3(fr)
+        else:
+            fr = report2(fr)
+
+    return fr
+
+
+def set_report(name_of_report, filename, fte):
+    for items in reports:
+        if items['name'] == name_of_report:
+            try:  # Читаем файл
+                df = pd.read_excel(filename, header=items['header_row'], parse_dates=['Дата'], date_format='%d.%m.%Y')
+                fr = get_data(items["reportnumber"], df, fte)
+
+                if export_excell_var.get():  # Checbox
+                    save_file = path.dirname(filename) + '/output.xlsx'
+                    label.config(text=f"Файл сохранился в {save_file}")
+                    fr.to_excel(save_file, index=True)
+
+                text.insert(5.0, f'{filename}\n \n \n {fr}')
+            except Exception as e:
+                text.insert(5.0, f"Не смог открыть файл {filename}{e}")
+
+
+def dec_fte(func):
+    def wrap_fn():
+        if len(one_hour_fte.get()) == 0:
+            raise TypeError("Нужно указать FTE")
+        elif int(one_hour_fte.get()) <= 0:
+            raise TypeError("fte <=0")
+        else:
+            return func()
+
+    return wrap_fn
+
+
+@dec_fte
+def get_fte():
+    return int(one_hour_fte.get())
+
+
+def init():
+    label.config(text="")
+    text.delete(1.0, END)
 
 
 def cmb_function(event):
-    filename = filedialog.askopenfilename()
-    label.config(text="")
-    text.delete(1.0, END)
-    msg = ""
-    if cmb.get() == reports[0]:
-        msg = print_text(filename, rprt=1)
-    if cmb.get() == reports[1]:
-        if export_excell:  # export checkbox
-            msg = print_text(filename, rprt=3)
-        else:
-            msg = print_text(filename, rprt=2)
-
-    text.insert(5.0, msg)
+    try:
+        fte = get_fte()
+        init()
+        filename = filedialog.askopenfilename()
+        set_report(cmb.get(), filename, fte)
+    except ValueError as e:
+        text.insert(5.0, "fte должно быть числом")
+    except TypeError as e:
+        text.insert(5.0, str(e))
+    except Exception as e:
+        text.insert(5.0, str(e))
 
 
-export_excell = tk.IntVar()
-reports = [
-    "Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период",
-    "Контроль заполнения факта за период"
-]
+export_excell_var = tk.IntVar()
+export_excell_checkbox = tk.Checkbutton(frame, text='Экспорт в Excel',
+                                        variable=export_excell_var, onvalue=1,
+                                        offvalue=0)
 
-export_excell_checkbox = tk.Checkbutton(frame, text='Экспорт в Excel', onvalue=True, offvalue=False,
-                                        variable=export_excell, )
 label1 = tk.Label(frame, text="Отчеты", font=("Helvetica", 16))
-cmb = ttk.Combobox(frame, values=reports, state="readonly", width=60)
+cmb = ttk.Combobox(frame, values=[items["name"] for items in reports], state="readonly", width=60)
 cmb.set('Выбор из списка отчетов')
 cmb.bind('<<ComboboxSelected>>', cmb_function)
 cmb["state"] = "readonly"
 label = tk.Label(frame, text="")
+label2 = tk.Label(frame, text="FTE:", width=5, border=2)
+
+one_hour_fte = tk.Entry(frame, width=5)
 
 text = Text(width=200, height=50, bg="darkgreen",
             fg='white', wrap=WORD)
 text.tag_config('title', justify=LEFT,
                 font=("Verdana", 24, 'bold'))
 
-label1.grid(column=0, row=0, padx=1, pady=0)
-export_excell_checkbox.grid(column=1, row=0)
+label2.grid(column=0, row=0, padx=0, pady=1, sticky='w')
+one_hour_fte.grid(column=0, row=0, padx=40, pady=0, sticky='w')
+export_excell_checkbox.grid(column=0, row=0, padx=90, sticky='w')
+label1.grid(column=1, row=0, padx=0, pady=0, sticky='w')
 cmb.grid(column=0, row=1, padx=1, columnspan=2)
 label.grid(column=0, row=2, padx=1, pady=0, columnspan=2)
 # text.grid(column=0, row=3, columnspan=2)
 
 
-
-
 frame.pack(side="top")
 text.pack()
+# export_excell_checkbox.pack(side="left")
 # Запускаем основной цикл обработки событий
 frame.mainloop()
