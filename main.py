@@ -1,8 +1,8 @@
 # -*- coding: cp1251 -*-
 #  from base64 import b16decode
 # from ctypes.wintypes import INT
-from typing import Callable, Any
-from unittest import result
+# from typing import Callable, Any
+# from unittest import result
 
 import pandas as pd
 from os import path
@@ -36,11 +36,11 @@ reports = [
 ]
 
 
-def print_text(filename, report):
-    try:
-        text.insert(5.0, f'{filename}\n \n \n {get_data(filename, rprt=report)}')
-    except Exception as e:
-        text.insert(5.0, f"Ошибка чтения файла {filename} \n {e}")
+# def print_text(filename, report):
+#     try:
+#         text.insert(5.0, f'{filename}\n \n \n {get_data(filename, rprt=report)}')
+#     except Exception as e:
+#         text.insert(5.0, f"Ошибка чтения файла {filename} \n {e}")
 
 
 def report1(df, fte):
@@ -68,6 +68,7 @@ def report3(fr):
             Контроль заполнения факта за период с экспортом
     """
     date_range = pd.date_range(start='2024-04-01', end='2024-04-30')
+
     fr = fr[fr['Дата'].isin(date_range)]
     fr = fr.sort_values(['Проект', 'ФИО', 'Дата'])
     return fr
