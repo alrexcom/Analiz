@@ -86,16 +86,17 @@ def report3(fr):
 
 def report4(df):
     # fr = df.loc[df["Услуга"] == "КИС \"Производственный учет и отчетность\""]
-
-    sum1 = df.groupby(['П2С'])["Открыто на начало периода"].sum()
-    sum2 = df.groupby(['П2С'])['Выполнено в период'].sum()
+    mdf = df
+    sum1 = mdf.groupby(['П2С'])["Открыто на начало периода"].sum()
+    sum2 = mdf.groupby(['П2С'])["Зарегистрировано в период"].sum()
+    sum3 = mdf.groupby(['П2С'])['Выполнено в период'].sum()
     # sum3 = df.loc[df['Тип запроса']=='Инцидент'].groupby(['П2С']).count()
-    sum3 = df[['П2С', 'Тип запроса']].loc[df['Тип запроса'] == 'Инцидент'].groupby(
+    sum4 = mdf[['П2С', 'Тип запроса']].loc[df['Тип запроса'] == 'Инцидент'].groupby(
         ['П2С']).count()
-    ss = (f"1 Общее количество зарегистрированных заявок : {sum1}\n\n"
-          f"2 Общее количество выполненных заявок : {sum2}\n\n"
+    ss = (f"1 Общее количество зарегистрированных заявок : {sum2}\n\n"
+          f"2 Общее количество выполненных заявок : {sum3}\n\n"
           f"3 Общее количество зарегистрированных заявок за "
-          f"отчетный период, имеющих категорию «Инцидент»: {sum3}")
+          f"отчетный период, имеющих категорию «Инцидент»: {sum4}")
     return ss
 
     # print(fr.columns)
@@ -151,7 +152,7 @@ def read_report():
                 df.loc[df["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
 
                 fr = get_data(items["reportnumber"], df)
-                # text.insert(5.0, f'{filename}\n \n \n {fr}')
+                text.insert(5.0, f'{filename}\n \n \n {fr}')
             elif items['name'] == name_of_report:
                 df = pd.read_excel(filename, header=items['header_row'], parse_dates=items['data_columns'],
                                    date_format='%d.%m.%Y')
@@ -165,7 +166,7 @@ def read_report():
                     save_file = path.dirname(filename) + '/output.xlsx'
                     label.config(text=f"Файл сохранился в {save_file}")
                     fr.to_excel(save_file, index=True)
-            text.insert(5.0, f'{filename}\n \n \n {fr}')
+                text.insert(5.0, f'{filename}\n \n \n {fr}')
                 # return df
     except Exception as e:
         text.insert(5.0, f"Не смог открыть файл {filename}{e}")
