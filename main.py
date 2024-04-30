@@ -8,7 +8,7 @@ import pandas as pd
 from os import path
 import tkinter as tk
 from tkinter import (END, LEFT, WORD, Text,
-                     filedialog, ttk, messagebox)
+                     filedialog, ttk)
 
 # import unit1 as un
 rprtname = ""
@@ -37,14 +37,12 @@ reports = [
 ]
 
 
-# def print_text(filename, report):
-#     try:
-#         text.insert(5.0, f'{filename}\n \n \n {get_data(filename, rprt=report)}')
-#     except Exception as e:
-#         text.insert(5.0, f"Ошибка чтения файла {filename} \n {e}")
-
 
 def report1(df, fte):
+    """
+    Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период
+
+    """
     headers = ['Проект', 'План, FTE', 'Пользователь', 'Фактические трудозатраты (час.) (Сумма)',
                'Кол-во штатных единиц']
     fr = df[headers].loc[df['Менеджер проекта'] == 'Тапехин Алексей Александрович']
@@ -80,6 +78,7 @@ def get_data(reportnumber, df, fte=1):
 
     :rtype: series
     """
+    global fr
     if reportnumber == 1:
         fr = report1(df, fte)
     elif reportnumber == 2:
@@ -152,6 +151,7 @@ def cmb_function(event):
 
 
 def btn_go_click():
+    init()
     read_report()
 
 
