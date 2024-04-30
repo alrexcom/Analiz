@@ -27,15 +27,26 @@ reports = [
     {
         "name": "Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период",
         "header_row": 0,
-        "reportnumber": 1
+        "reportnumber": 1,
+        "data_columns": ["Дата"]
     },
     {
         "name": "Контроль заполнения факта за период",
         "header_row": 1,
-        "reportnumber": 2
+        "reportnumber": 2,
+        "data_columns": ["Дата"]
+    },
+    {
+        "name": "Сводный список запросов  для SLA",
+        "header_row": 2,
+        "reportnumber": 3,
+        "data_columns": ["Дата регистрации", "Крайний срок решения", "Дата решения", "Дата закрытия"],
+        # "Дата последнего назначения в группу"],
+        "status": ["В ожидании", "Выполнено", "Закрыто", "Проект изменения", "Решен", "Назначен", "Выполняется",
+                   "Планирование изменения", "Выполнение изменения", "Экспертиза решения", "Согласование изменения",
+                   "Автроизация изменения"]  # Отмена  убрано
     }
 ]
-
 
 
 def report1(df, fte):
@@ -73,14 +84,44 @@ def report3(fr):
     return fr
 
 
-def get_data(reportnumber, df, fte=1):
-    """
+def report4(df):
+    # fr = df.loc[df["Услуга"] == "КИС \"Производственный учет и отчетность\""]
 
-    :rtype: series
-    """
+    sum1 = df.groupby(['П2С'])["Открыто на начало периода"].sum()
+    sum2 = df.groupby(['П2С'])['Выполнено в период'].sum()
+    # sum3 = df.loc[df['Тип запроса']=='Инцидент'].groupby(['П2С']).count()
+    sum3 = df[['П2С', 'Тип запроса']].loc[df['Тип запроса'] == 'Инцидент'].groupby(
+        ['П2С']).count()
+    ss = (f"1 Общее количество зарегистрированных заявок : {sum1}\n\n"
+          f"2 Общее количество выполненных заявок : {sum2}\n\n"
+          f"3 Общее количество зарегистрированных заявок за "
+          f"отчетный период, имеющих категорию «Инцидент»: {sum3}")
+    return ss
+
+    # print(fr.columns)
+    # ss = (f"{df.groupby(['П2С'])["Открыто на начало периода"].sum()} \n"
+    #       f"Итого { df.loc[df['П2С'].isin(['П','С'])]["Открыто на начало периода"].sum()} \n\n"
+    #       f"{df.groupby(['П2С'])['Зарегистрировано в период'].sum()}"
+    #       f"Итого { df.loc[df['П2С'].isin(['П','С'])]["Зарегистрировано в период"].sum()} \n\n")
+
+    # info()
+    # ss = f"{df.groupby(['П2С'])[['Открыто на начало периода', 'Зарегистрировано в период',
+    #                              'Выполнено в период', 'Просрочено в период', 'Открыто на конец периода']].sum()}"
+
+    # ss = [f"{df.groupby(['П2С'])[['Открыто на начало периода', 'Зарегистрировано в период',
+    #                              'Выполнено в период']].sum()}",
+    #  f"{df.groupby(['П2С'])[[ 'Просрочено в период', 'Открыто на конец периода']].sum()}"]
+
+    # return f"Сумма по полю Открыто на начало периода: {s1} \n всего: {itogo}"
+    # return f"{s1} \n всего: {itogo}"
+
+
+def get_data(reportnumber, df, fte=1):
     global fr
     if reportnumber == 1:
         fr = report1(df, fte)
+    elif reportnumber == 3:
+        fr = report4(df)
     elif reportnumber == 2:
         fr = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
                 (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
@@ -94,12 +135,26 @@ def get_data(reportnumber, df, fte=1):
 
 
 def read_report():
+    # global fr
     name_of_report = cmb.get()
     filename = filedialog.askopenfilename()
-    for items in reports:
-        if items['name'] == name_of_report:
-            try:  # Читаем файл
-                df = pd.read_excel(filename, header=items['header_row'], parse_dates=['Дата'], date_format='%d.%m.%Y')
+    try:  # Читаем файл
+        for items in reports:
+            if items["reportnumber"] == 3:
+                df = pd.read_excel(filename, header=items['header_row'], parse_dates=items['data_columns'],
+                                   date_format='%d.%m.%Y')
+                df = df.loc[df["Услуга"] == "КИС \"Производственный учет и отчетность\""]
+                df = df.loc[df["Статус"].isin(items['status'])]
+
+                df["П2С"] = "П"
+                df.loc[df["Тип запроса"] == 'Нестандартное', "П2С"] = "СДОП"
+                df.loc[df["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
+
+                fr = get_data(items["reportnumber"], df)
+                # text.insert(5.0, f'{filename}\n \n \n {fr}')
+            elif items['name'] == name_of_report:
+                df = pd.read_excel(filename, header=items['header_row'], parse_dates=items['data_columns'],
+                                   date_format='%d.%m.%Y')
                 if items["reportnumber"] == 1:
                     fte = get_fte()
                     fr = get_data(items["reportnumber"], df, fte)
@@ -110,11 +165,10 @@ def read_report():
                     save_file = path.dirname(filename) + '/output.xlsx'
                     label.config(text=f"Файл сохранился в {save_file}")
                     fr.to_excel(save_file, index=True)
-
-                text.insert(5.0, f'{filename}\n \n \n {fr}')
-                return df
-            except Exception as e:
-                text.insert(5.0, f"Не смог открыть файл {filename}{e}")
+            text.insert(5.0, f'{filename}\n \n \n {fr}')
+                # return df
+    except Exception as e:
+        text.insert(5.0, f"Не смог открыть файл {filename}{e}")
 
 
 def dec_fte(func):
