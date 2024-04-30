@@ -73,48 +73,72 @@ def report2(fr):
     return fr
 
 
-def report3(fr):
+def report3(md):
     """
             Контроль заполнения факта за период с экспортом
     """
-    date_range = pd.date_range(start='2024-04-01', end='2024-04-30')
+    # date_range = pd.date_range(start='2024-04-01', end='2024-04-30')
 
-    fr = fr[fr['Дата'].isin(date_range)]
-    fr = fr.sort_values(['Проект', 'ФИО', 'Дата'])
-    return fr
+    data_reg = md[(md['Дата'] <= Date_end.get())
+                   & (md['Дата'] >= Date_begin.get())]
+    # fr = fr[fr['Дата'].isin(date_range)]
+
+    return data_reg.sort_values(['Проект', 'ФИО', 'Дата'])
 
 
 def report4(df):
     # fr = df.loc[df["Услуга"] == "КИС \"Производственный учет и отчетность\""]
+    # date_range = pd.date_range(Date_begin.get(), Date_end.get(), freq='D')
     mdf = df
-    sum1 = mdf.groupby(['П2С'])["Открыто на начало периода"].sum()
-    sum2 = mdf.groupby(['П2С'])["Зарегистрировано в период"].sum()
-    sum3 = mdf.groupby(['П2С'])['Выполнено в период'].sum()
+    # df[df['Дата регистрации'] < '2023-08-31']
+    data_reg = mdf[(mdf['Дата регистрации'] <= Date_end.get())
+                   & (mdf['Дата регистрации'] >= Date_begin.get())]
+    sum1 = data_reg.groupby(['П2С'])["Зарегистрировано в период"].sum()
+    sum2 = mdf.groupby(['П2С'])['Выполнено в период'].sum()
     # sum3 = df.loc[df['Тип запроса']=='Инцидент'].groupby(['П2С']).count()
-    sum4 = mdf[['П2С', 'Тип запроса']].loc[df['Тип запроса'] == 'Инцидент'].groupby(
-        ['П2С']).count()
-    ss = (f"1 Общее количество зарегистрированных заявок : {sum2}\n\n"
-          f"2 Общее количество выполненных заявок : {sum3}\n\n"
+    inzindent = mdf[['П2С', 'Дата регистрации', 'Статус',
+                     'Просрочено в период', 'Дата закрытия']].loc[mdf['Тип запроса'] == 'Инцидент']
+
+    data_inzindent = inzindent[(inzindent['Дата регистрации'] <= Date_end.get())
+                               & (inzindent['Дата регистрации'] >= Date_begin.get())]
+
+    sum3 = data_inzindent[['Дата регистрации', 'П2С']].groupby('П2С').count()
+
+    data_inzindent = inzindent[(inzindent['Статус'] == 'Закрыто') & (inzindent['Просрочено в период'] > 0)
+                               & (inzindent['Дата закрытия'] <= Date_end.get())
+                               & (inzindent['Дата закрытия'] >= Date_begin.get())]
+
+    sum4 = data_inzindent[['Просрочено в период', 'П2С']].groupby(['П2С']).count()
+
+    # data_ = mdf[['Просрочено в период', 'П2С', 'Дата регистрации']][(mdf['Просрочено в период'] > 0) &
+    #                                                                 (mdf['Дата регистрации'] >= Date_begin.get())
+    #                                                                 & (mdf['Дата регистрации'] <= Date_end.get())
+    #                                                                 ]
+
+    sum6 = data_reg[['Просрочено в период', 'П2С']].groupby(['П2С']).sum()
+
+    sum7 = mdf[['Открыто на конец периода с просрочкой', 'П2С']].groupby(['П2С']).sum()
+
+    sum8 = mdf.groupby(['П2С'])["Открыто на начало периода"].sum()
+    # Открыто на конец периода с просрочкой
+    slap = round((1 - (sum6['Просрочено в период']['П'] + sum7['Открыто на конец периода с просрочкой']['П'])
+                  / (sum8['П'] + sum1['П'])) * 100, 2)
+    slac = round((1 - (sum6['Просрочено в период']['С'] + sum7['Открыто на конец периода с просрочкой']['С'])
+                  / (sum8['С'] + sum1['С'])) * 100, 2)
+    ss = (f"1 Общее количество зарегистрированных заявок : {sum1}\n\n"
+          f"2 Общее количество выполненных заявок : {sum2}\n\n"
           f"3 Общее количество зарегистрированных заявок за "
-          f"отчетный период, имеющих категорию «Инцидент»: {sum4}")
+          f" отчетный период, имеющих категорию «Инцидент»: {sum3}\n\n"
+          f"4 Количество заявок за период с превышением срока выполнения, имеющих категорию «Инцидент» : {sum4}\n\n"
+          f"5 Количество заявок за период с превышением времени реакции по поддержке: 0 \n\n"
+          f"6 (TUR1) Количество закрытых заявок на поддержку с нарушением сроков заявок:{sum6}\n\n"
+          f"7 (TUR2) Количество незакрытых заявок, с нарушением срока: {sum7}\n\n"
+          f"8 (TUR3) Количество перешедших с прошлого периода заявок на поддержку: {sum8}\n\n"
+          f"9 (TUR4) Количество зарегистрированных заявок по поддержке: {sum1}\n\n\n\n"
+          f"SLA для поддержки = {slap} "
+          f"SLA для сопровождения = {slac} "
+          )
     return ss
-
-    # print(fr.columns)
-    # ss = (f"{df.groupby(['П2С'])["Открыто на начало периода"].sum()} \n"
-    #       f"Итого { df.loc[df['П2С'].isin(['П','С'])]["Открыто на начало периода"].sum()} \n\n"
-    #       f"{df.groupby(['П2С'])['Зарегистрировано в период'].sum()}"
-    #       f"Итого { df.loc[df['П2С'].isin(['П','С'])]["Зарегистрировано в период"].sum()} \n\n")
-
-    # info()
-    # ss = f"{df.groupby(['П2С'])[['Открыто на начало периода', 'Зарегистрировано в период',
-    #                              'Выполнено в период', 'Просрочено в период', 'Открыто на конец периода']].sum()}"
-
-    # ss = [f"{df.groupby(['П2С'])[['Открыто на начало периода', 'Зарегистрировано в период',
-    #                              'Выполнено в период']].sum()}",
-    #  f"{df.groupby(['П2С'])[[ 'Просрочено в период', 'Открыто на конец периода']].sum()}"]
-
-    # return f"Сумма по полю Открыто на начало периода: {s1} \n всего: {itogo}"
-    # return f"{s1} \n всего: {itogo}"
 
 
 def get_data(reportnumber, df, fte=1):
@@ -139,11 +163,13 @@ def read_report():
     # global fr
     name_of_report = cmb.get()
     filename = filedialog.askopenfilename()
+
     try:  # Читаем файл
         for items in reports:
             if items["reportnumber"] == 3:
                 df = pd.read_excel(filename, header=items['header_row'], parse_dates=items['data_columns'],
                                    date_format='%d.%m.%Y')
+
                 df = df.loc[df["Услуга"] == "КИС \"Производственный учет и отчетность\""]
                 df = df.loc[df["Статус"].isin(items['status'])]
 
@@ -199,6 +225,10 @@ def get_fte():
 def init():
     label.config(text="")
     text.delete(1.0, END)
+    Date_begin.delete(0, END)
+    Date_end.delete(0, END)
+    Date_begin.insert(0, "2024-01-01")
+    Date_end.insert(0, "2024-03-30")
 
 
 def cmb_function(event):
@@ -206,9 +236,24 @@ def cmb_function(event):
 
 
 def btn_go_click():
-    init()
+    # init()
     read_report()
 
+
+# Date_begin = imp_begin.get()
+
+frame1 = tk.Frame()
+
+frame1.pack(pady=10)
+tk.Label(frame1, text="Отчетный период", bd=1, width=80, font="italic 14 bold").pack()
+tk.Label(frame1, text="C", bd=1, width=10, font="italic 10 bold").pack(side=LEFT)
+Date_begin = tk.Entry(frame1, width=15, bd=1, bg="white", relief="solid", font="italic 10 bold")
+Date_begin.pack(side=LEFT, padx=15)
+
+tk.Label(frame1, text="ПО", bd=1, width=2,
+         font="italic 10 bold").pack(side=LEFT)
+Date_end = tk.Entry(frame1, width=15, relief="solid")
+Date_end.pack(padx=15)
 
 export_excell_var = tk.IntVar()
 export_excell_checkbox = tk.Checkbutton(frame, text='Экспорт в Excel',
@@ -216,6 +261,7 @@ export_excell_checkbox = tk.Checkbutton(frame, text='Экспорт в Excel',
                                         offvalue=0)
 
 label1 = tk.Label(frame, text="Отчеты", font=("Helvetica", 16))
+
 cmb = ttk.Combobox(frame, values=[items["name"] for items in reports], state="readonly", width=60)
 cmb.set('Выбор из списка отчетов')
 cmb.bind('<<ComboboxSelected>>', cmb_function)
