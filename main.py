@@ -7,7 +7,8 @@
 import pandas as pd
 from os import path
 import tkinter as tk
-from tkinter import END, LEFT, WORD, Text, filedialog, ttk
+from tkinter import (END, LEFT, WORD, Text,
+                     filedialog, ttk, messagebox)
 
 # import unit1 as un
 rprtname = ""
@@ -74,7 +75,11 @@ def report3(fr):
     return fr
 
 
-def get_data(reportnumber, df, fte):
+def get_data(reportnumber, df, fte=1):
+    """
+
+    :rtype: series
+    """
     if reportnumber == 1:
         fr = report1(df, fte)
     elif reportnumber == 2:
@@ -89,12 +94,18 @@ def get_data(reportnumber, df, fte):
     return fr
 
 
-def set_report(name_of_report, filename, fte):
+def read_report():
+    name_of_report = cmb.get()
+    filename = filedialog.askopenfilename()
     for items in reports:
         if items['name'] == name_of_report:
             try:  # Читаем файл
                 df = pd.read_excel(filename, header=items['header_row'], parse_dates=['Дата'], date_format='%d.%m.%Y')
-                fr = get_data(items["reportnumber"], df, fte)
+                if items["reportnumber"] == 1:
+                    fte = get_fte()
+                    fr = get_data(items["reportnumber"], df, fte)
+                else:
+                    fr = get_data(items["reportnumber"], df)
 
                 if export_excell_var.get():  # Checbox
                     save_file = path.dirname(filename) + '/output.xlsx'
@@ -102,6 +113,7 @@ def set_report(name_of_report, filename, fte):
                     fr.to_excel(save_file, index=True)
 
                 text.insert(5.0, f'{filename}\n \n \n {fr}')
+                return df
             except Exception as e:
                 text.insert(5.0, f"Не смог открыть файл {filename}{e}")
 
@@ -120,7 +132,14 @@ def dec_fte(func):
 
 @dec_fte
 def get_fte():
-    return int(one_hour_fte.get())
+    try:
+        return int(one_hour_fte.get())
+    except ValueError as e:
+        text.insert(5.0, "fte должно быть числом")
+    except TypeError as e:
+        text.insert(5.0, str(e))
+    except Exception as e:
+        text.insert(5.0, str(e))
 
 
 def init():
@@ -129,17 +148,11 @@ def init():
 
 
 def cmb_function(event):
-    try:
-        fte = get_fte()
-        init()
-        filename = filedialog.askopenfilename()
-        set_report(cmb.get(), filename, fte)
-    except ValueError as e:
-        text.insert(5.0, "fte должно быть числом")
-    except TypeError as e:
-        text.insert(5.0, str(e))
-    except Exception as e:
-        text.insert(5.0, str(e))
+    init()
+
+
+def btn_go_click():
+    read_report()
 
 
 export_excell_var = tk.IntVar()
@@ -162,14 +175,15 @@ text = Text(width=200, height=50, bg="darkgreen",
 text.tag_config('title', justify=LEFT,
                 font=("Verdana", 24, 'bold'))
 
+btn_go = tk.Button(frame, text='Открыть', command=btn_go_click)
+
 label2.grid(column=0, row=0, padx=0, pady=1, sticky='w')
 one_hour_fte.grid(column=0, row=0, padx=40, pady=0, sticky='w')
 export_excell_checkbox.grid(column=0, row=0, padx=90, sticky='w')
 label1.grid(column=1, row=0, padx=0, pady=0, sticky='w')
 cmb.grid(column=0, row=1, padx=1, columnspan=2)
+btn_go.grid(column=2, row=1, padx=5)
 label.grid(column=0, row=2, padx=1, pady=0, columnspan=2)
-# text.grid(column=0, row=3, columnspan=2)
-
 
 frame.pack(side="top")
 text.pack()
