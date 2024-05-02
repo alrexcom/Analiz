@@ -9,6 +9,7 @@ from os import path
 import tkinter as tk
 from tkinter import (END, LEFT, WORD, Text,
                      filedialog, ttk)
+import datetime
 
 # import unit1 as un
 rprtname = ""
@@ -237,8 +238,13 @@ def init():
     text.delete(1.0, END)
     Date_begin.delete(0, END)
     Date_end.delete(0, END)
+
     Date_begin.insert(0, "2024-01-01")
-    Date_end.insert(0, "2024-03-30")
+
+    ss = datetime.datetime.now().strftime("%Y-%m-%d")
+    Date_end.insert(0, ss)
+
+    one_hour_fte.insert(0, '164')
 
 
 def cmb_function(event):
@@ -253,7 +259,7 @@ def btn_go_click():
 # Date_begin = imp_begin.get()
 export_excell_var = tk.IntVar()
 
-lblzag = tk.Label(root, text="Анализ отчётов", font="italic 14 bold", background="gray")
+lblzag = tk.Label(root, text="Анализ отчётов", font="italic 14 bold", background="gray", fg="lightgreen")
 
 cmb = ttk.Combobox(root, values=[items["name"] for items in reports], state="readonly", width=90)
 cmb.set('Выбор из списка отчетов')
@@ -279,10 +285,9 @@ export_excell_checkbox = tk.Checkbutton(root, text='Экспорт в Excel',
                                         offvalue=0, background="gray")
 lbl_path = tk.Label(root, text="")
 
-text = Text( bg="darkgreen",
-            fg='white', wrap=WORD)
-text.tag_config('title', justify=LEFT,
-                font=("Verdana", 24, 'bold'))
+text = Text( bg="darkgreen",  fg="white", wrap=WORD)
+text.tag_config('title', justify=LEFT)
+                # ,              font=("Verdana", 24, 'bold'))
 
 
 # grid layout
@@ -294,7 +299,7 @@ lblzag.grid(column=0, row=0, columnspan=7, sticky='nwe', pady=3, padx=5)
 
 cmb.grid(column=0, row=1, columnspan=6, sticky='nw', padx=10)
 btn_go.grid(column=6, row=1, sticky='ne', padx=10)
-label1.grid(column=0, row=2, columnspan=7, sticky='wnse', padx=5)
+label1.grid(column=0, row=2, columnspan=7, sticky='news', padx=5)
 
 lblC.grid(column=0, row=2, sticky='w', padx=10)
 Date_begin.grid(column=1, row=2, sticky='w')
