@@ -290,11 +290,11 @@ root.columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
 root.rowconfigure((0, 1, 2, 3), weight=1)
 root.rowconfigure(4, weight=40)
 
-lblzag.grid(column=0, row=0, columnspan=7, sticky='nwe', pady=3)
+lblzag.grid(column=0, row=0, columnspan=7, sticky='nwe', pady=3, padx=5)
 
 cmb.grid(column=0, row=1, columnspan=6, sticky='nw', padx=10)
 btn_go.grid(column=6, row=1, sticky='ne', padx=10)
-label1.grid(column=0, row=2, columnspan=7, sticky='wnse')
+label1.grid(column=0, row=2, columnspan=7, sticky='wnse', padx=5)
 
 lblC.grid(column=0, row=2, sticky='w', padx=10)
 Date_begin.grid(column=1, row=2, sticky='w')
@@ -305,6 +305,6 @@ one_hour_fte.grid(column=5, row=2, sticky='w')
 export_excell_checkbox.grid(column=6, row=2, sticky='e', padx=10)
 
 lbl_path.grid(column=0, row=3, columnspan=7, sticky='nwe', padx=10)
-text.grid(column=0, row=4, columnspan=7, sticky='news', padx=10, pady=10)
+text.grid(column=0, row=4, columnspan=7, sticky='news', padx=5, pady=5)
 
 root.mainloop()
