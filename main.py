@@ -255,7 +255,7 @@ export_excell_var = tk.IntVar()
 
 lblzag = tk.Label(root, text="Анализ отчётов", font="italic 14 bold", background="gray")
 
-cmb = ttk.Combobox(root, values=[items["name"] for items in reports], state="readonly", width=80)
+cmb = ttk.Combobox(root, values=[items["name"] for items in reports], state="readonly", width=90)
 cmb.set('Выбор из списка отчетов')
 cmb.bind('<<ComboboxSelected>>', cmb_function)
 cmb["state"] = "readonly"
@@ -284,17 +284,13 @@ text = Text( bg="darkgreen",
 text.tag_config('title', justify=LEFT,
                 font=("Verdana", 24, 'bold'))
 
-#
 
-
-# export_excell_checkbox.pack(side="left")
-# Запускаем основной цикл обработки событий
-
+# grid layout
 root.columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
 root.rowconfigure((0, 1, 2, 3), weight=1)
-root.rowconfigure(4, weight=30)
+root.rowconfigure(4, weight=40)
 
-lblzag.grid(column=0, row=0, columnspan=7, sticky='nwe')
+lblzag.grid(column=0, row=0, columnspan=7, sticky='nwe', pady=3)
 
 cmb.grid(column=0, row=1, columnspan=6, sticky='nw', padx=10)
 btn_go.grid(column=6, row=1, sticky='ne', padx=10)
