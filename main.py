@@ -15,10 +15,10 @@ rprtname = ""
 
 # Создаем главное окно
 root = tk.Tk()
-root.geometry("500x400")
+root.geometry("800x600")
 root.title("Анализ отчётов")
 
-frame = tk.Frame(root)
+# frame = tk.Frame(root)
 
 # root.withdraw() # Скрыть главное окно, если вы хотите, чтобы диалог был показан без главного окна
 
@@ -200,7 +200,7 @@ def read_report():
 
                 if export_excell_var.get():  # Checbox
                     save_file = path.dirname(filename) + '/output.xlsx'
-                    label.config(text=f"Файл сохранился в {save_file}")
+                    lbl_path.config(text=f"Файл сохранился в {save_file}")
                     fr.to_excel(save_file, index=True)
                 text.insert(5.0, f'{filename}\n \n \n {fr}')
                 # return df
@@ -233,7 +233,7 @@ def get_fte():
 
 
 def init():
-    label.config(text="")
+    lbl_path.config(text="")
     text.delete(1.0, END)
     Date_begin.delete(0, END)
     Date_end.delete(0, END)
@@ -251,53 +251,64 @@ def btn_go_click():
 
 
 # Date_begin = imp_begin.get()
-
-frame1 = tk.Frame()
-
-frame1.pack(pady=10)
-tk.Label(frame1, text="Отчетный период", bd=1, width=80, font="italic 14 bold").pack()
-tk.Label(frame1, text="C", bd=1, width=10, font="italic 10 bold").pack(side=LEFT)
-Date_begin = tk.Entry(frame1, width=15, bd=1, bg="white", relief="solid", font="italic 10 bold")
-Date_begin.pack(side=LEFT, padx=15)
-
-tk.Label(frame1, text="ПО", bd=1, width=2,
-         font="italic 10 bold").pack(side=LEFT)
-Date_end = tk.Entry(frame1, width=15, relief="solid")
-Date_end.pack(padx=15)
-
 export_excell_var = tk.IntVar()
-export_excell_checkbox = tk.Checkbutton(frame, text='Экспорт в Excel',
-                                        variable=export_excell_var, onvalue=1,
-                                        offvalue=0)
 
-label1 = tk.Label(frame, text="Отчеты", font=("Helvetica", 16))
+lblzag = tk.Label(root, text="Анализ отчётов", font="italic 14 bold", background="gray")
 
-cmb = ttk.Combobox(frame, values=[items["name"] for items in reports], state="readonly", width=60)
+cmb = ttk.Combobox(root, values=[items["name"] for items in reports], state="readonly", width=80)
 cmb.set('Выбор из списка отчетов')
 cmb.bind('<<ComboboxSelected>>', cmb_function)
 cmb["state"] = "readonly"
-label = tk.Label(frame, text="")
-label2 = tk.Label(frame, text="FTE:", width=5, border=2)
 
-one_hour_fte = tk.Entry(frame, width=5)
+btn_go = tk.Button(root, text='Открыть', command=btn_go_click, width=20)
+label1 = tk.Label(root, text="", font=("Helvetica", 16), background="gray", fg='white')
+lblC = tk.Label(root, text="Период с", font="italic 10 bold", background="gray", fg='white')
+Date_begin = tk.Entry(root, width=15, bd=1, bg="white", relief="solid", font="italic 10 bold")
+# Date_begin.pack(side=LEFT, padx=15)
 
-text = Text(width=200, height=50, bg="darkgreen",
+lblpo = tk.Label(root, text="ПО", bd=1, width=2, font="italic 10 bold", background="gray", fg='white')
+Date_end = tk.Entry(root, width=15, relief="solid")
+# Date_end.pack(padx=15)
+
+
+lbl_fte = tk.Label(root, text="FTE:", width=5, border=2, background="gray", fg='white')
+one_hour_fte = tk.Entry(root, width=5)
+
+export_excell_checkbox = tk.Checkbutton(root, text='Экспорт в Excel',
+                                        variable=export_excell_var, onvalue=1,
+                                        offvalue=0, background="gray")
+lbl_path = tk.Label(root, text="")
+
+text = Text( bg="darkgreen",
             fg='white', wrap=WORD)
 text.tag_config('title', justify=LEFT,
                 font=("Verdana", 24, 'bold'))
 
-btn_go = tk.Button(frame, text='Открыть', command=btn_go_click)
+#
 
-label2.grid(column=0, row=0, padx=0, pady=1, sticky='w')
-one_hour_fte.grid(column=0, row=0, padx=40, pady=0, sticky='w')
-export_excell_checkbox.grid(column=0, row=0, padx=90, sticky='w')
-label1.grid(column=1, row=0, padx=0, pady=0, sticky='w')
-cmb.grid(column=0, row=1, padx=1, columnspan=2)
-btn_go.grid(column=2, row=1, padx=5)
-label.grid(column=0, row=2, padx=1, pady=0, columnspan=2)
 
-frame.pack(side="top")
-text.pack()
 # export_excell_checkbox.pack(side="left")
 # Запускаем основной цикл обработки событий
-frame.mainloop()
+
+root.columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
+root.rowconfigure((0, 1, 2, 3), weight=1)
+root.rowconfigure(4, weight=30)
+
+lblzag.grid(column=0, row=0, columnspan=7, sticky='nwe')
+
+cmb.grid(column=0, row=1, columnspan=6, sticky='nw', padx=10)
+btn_go.grid(column=6, row=1, sticky='ne', padx=10)
+label1.grid(column=0, row=2, columnspan=7, sticky='wnse')
+
+lblC.grid(column=0, row=2, sticky='w', padx=10)
+Date_begin.grid(column=1, row=2, sticky='w')
+lblpo.grid(column=2, row=2, sticky='w')
+Date_end.grid(column=3, row=2, sticky='w')
+lbl_fte.grid(column=4, row=2, sticky='e')
+one_hour_fte.grid(column=5, row=2, sticky='w')
+export_excell_checkbox.grid(column=6, row=2, sticky='e', padx=10)
+
+lbl_path.grid(column=0, row=3, columnspan=7, sticky='nwe', padx=10)
+text.grid(column=0, row=4, columnspan=7, sticky='news', padx=10, pady=10)
+
+root.mainloop()
