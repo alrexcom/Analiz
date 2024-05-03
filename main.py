@@ -10,6 +10,8 @@ import tkinter as tk
 from tkinter import (END, LEFT, WORD, Text,
                      filedialog, ttk)
 import datetime
+# import tkcalendar as cc
+from tkcalendar import DateEntry
 
 # import unit1 as un
 rprtname = ""
@@ -74,40 +76,40 @@ def report2(fr):
     return fr
 
 
-def report3(md):
+def report3(md, date_end, date_begin):
     """
             Контроль заполнения факта за период с экспортом
     """
-    # date_range = pd.date_range(start='2024-04-01', end='2024-04-30')
+    date_range = pd.date_range(start=date_begin, end=date_end, freq='D')
 
-    data_reg = md[(md['Дата'] <= Date_end.get())
-                  & (md['Дата'] >= Date_begin.get())]
-    # fr = fr[fr['Дата'].isin(date_range)]
+    # data_reg = md[(md['Дата'] <= date_begin)
+    #               & (md['Дата'] >= date_end)]
+    data_reg = md[md['Дата'].isin(date_range)]
 
     return data_reg.sort_values(['Проект', 'ФИО', 'Дата'])
 
 
-def report4(df):
+def report4(df, date_end, date_begin):
     # fr = df.loc[df["Услуга"] == "КИС \"Производственный учет и отчетность\""]
     # date_range = pd.date_range(Date_begin.get(), Date_end.get(), freq='D')
     mdf = df
     # df[df['Дата регистрации'] < '2023-08-31']
-    data_reg = mdf[(mdf['Дата регистрации'] <= Date_end.get())
-                   & (mdf['Дата регистрации'] >= Date_begin.get())]
+    data_reg = mdf[(mdf['Дата регистрации'] <= date_end)
+                   & (mdf['Дата регистрации'] >= date_begin)]
     sum1 = data_reg.groupby(['П2С'])["Зарегистрировано в период"].sum()
     sum2 = mdf.groupby(['П2С'])['Выполнено в период'].sum()
     # sum3 = df.loc[df['Тип запроса']=='Инцидент'].groupby(['П2С']).count()
     inzindent = mdf[['П2С', 'Дата регистрации', 'Статус',
                      'Просрочено в период', 'Дата закрытия']].loc[mdf['Тип запроса'] == 'Инцидент']
 
-    data_inzindent = inzindent[(inzindent['Дата регистрации'] <= Date_end.get())
-                               & (inzindent['Дата регистрации'] >= Date_begin.get())]
+    data_inzindent = inzindent[(inzindent['Дата регистрации'] <= date_end)
+                               & (inzindent['Дата регистрации'] >= date_begin)]
 
     sum3 = data_inzindent[['Дата регистрации', 'П2С']].groupby('П2С').count()
 
     data_inzindent = inzindent[(inzindent['Статус'] == 'Закрыто') & (inzindent['Просрочено в период'] > 0)
-                               & (inzindent['Дата закрытия'] <= Date_end.get())
-                               & (inzindent['Дата закрытия'] >= Date_begin.get())]
+                               & (inzindent['Дата закрытия'] <= date_end)
+                               & (inzindent['Дата закрытия'] >= date_begin)]
 
     sum4 = data_inzindent[['Просрочено в период', 'П2С']].groupby(['П2С']).count()
 
@@ -152,25 +154,25 @@ def report4(df):
     return ss
 
 
-def get_data(reportnumber, df, fte=1):
-    global fr
+def get_data(reportnumber, dateend, datebegin, df, fte):
+    frm = ''
     if reportnumber == 1:
-        fr = report1(df, fte)
+        frm = report1(df, fte)
     elif reportnumber == 3:
-        fr = report4(df)
+        frm = report4(df, date_end=dateend, date_begin=datebegin)
     elif reportnumber == 2:
-        fr = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
-                (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
+        frm = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
+                 (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
             ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
         if export_excell_var.get() == 1:
-            fr = report3(fr)
+            frm = report3(frm, date_end=dateend, date_begin=datebegin)
         else:
-            fr = report2(fr)
+            frm = report2(frm)
 
-    return fr
+    return frm
 
 
-def read_report():
+def read_report(datebegin, dateend):
     # global fr
     name_of_report = cmb.get()
     filename = filedialog.askopenfilename()
@@ -188,16 +190,18 @@ def read_report():
                 df.loc[df["Тип запроса"] == 'Нестандартное', "П2С"] = "СДОП"
                 df.loc[df["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
 
-                fr = get_data(items["reportnumber"], df)
+                fr = get_data(reportnumber=items["reportnumber"], df=df, datebegin=datebegin, dateend=dateend, fte=1)
                 text.insert(5.0, f'{filename}\n \n \n {fr}')
             elif items['name'] == name_of_report:
                 df = pd.read_excel(filename, header=items['header_row'], parse_dates=items['data_columns'],
                                    date_format='%d.%m.%Y')
                 if items["reportnumber"] == 1:
                     fte = get_fte()
-                    fr = get_data(items["reportnumber"], df, fte)
+                    fr = get_data(reportnumber=items["reportnumber"], df=df, datebegin=datebegin, dateend=dateend,
+                                  fte=fte)
                 else:
-                    fr = get_data(items["reportnumber"], df)
+                    fr = get_data(reportnumber=items["reportnumber"], df=df, datebegin=datebegin, dateend=dateend,
+                                  fte=1)
 
                 if export_excell_var.get():  # Checbox
                     save_file = path.dirname(filename) + '/output.xlsx'
@@ -226,7 +230,7 @@ def get_fte():
     try:
         return int(one_hour_fte.get())
     except ValueError as e:
-        text.insert(5.0, "fte должно быть числом")
+        text.insert(5.0, f"fte должно быть числом \n {e}")
     except TypeError as e:
         text.insert(5.0, str(e))
     except Exception as e:
@@ -236,14 +240,14 @@ def get_fte():
 def init():
     lbl_path.config(text="")
     text.delete(1.0, END)
-    Date_begin.delete(0, END)
-    Date_end.delete(0, END)
+    # Date_begin.delete(0, END)
+    # Date_end.delete(0, END)
 
-    Date_begin.insert(0, "2024-01-01")
-
-    ss = datetime.datetime.now().strftime("%Y-%m-%d")
-    Date_end.insert(0, ss)
-
+    # Date_begin.insert(0, "01/01/2024")
+    #
+    # ss = datetime.datetime.now().strftime("%Y-%m-%d")
+    # Date_end.insert(0, ss)
+    one_hour_fte.delete(0, END)
     one_hour_fte.insert(0, '164')
 
 
@@ -252,8 +256,14 @@ def cmb_function(event):
 
 
 def btn_go_click():
-    # init()
-    read_report()
+    ds = Date_end.get()
+
+    # datetime.datetime.strptime(ds, '%Y-%m-%d')
+    # datetime.datetime.strptime(ds, '%d/%m/%Y')
+    dp = Date_begin.get()
+    # datetime.datetime.strptime(ds, '%Y-%m-%d')
+    # datetime.datetime.strptime(dp, '%d/%m/%Y')
+    read_report(dateend=ds, datebegin=dp)
 
 
 # Date_begin = imp_begin.get()
@@ -269,13 +279,12 @@ cmb["state"] = "readonly"
 btn_go = tk.Button(root, text='Открыть', command=btn_go_click, width=20)
 label1 = tk.Label(root, text="", font=("Helvetica", 16), background="gray", fg='white')
 lblC = tk.Label(root, text="Период с", font="italic 10 bold", background="gray", fg='white')
-Date_begin = tk.Entry(root, width=15, bd=1, bg="white", relief="solid", font="italic 10 bold")
-# Date_begin.pack(side=LEFT, padx=15)
+# Date_begin = tk.Entry(root, width=15, bd=1, bg="white", relief="solid", font="italic 10 bold")
+# Date_begin = DateEntry(root, date_pattern='dd/mm/YYYY')
+Date_begin = DateEntry(root, date_pattern='YYYY-mm-dd')
 
 lblpo = tk.Label(root, text="ПО", bd=1, width=2, font="italic 10 bold", background="gray", fg='white')
-Date_end = tk.Entry(root, width=15, relief="solid")
-# Date_end.pack(padx=15)
-
+Date_end = DateEntry(root, width=15, relief="solid", date_pattern='YYYY-mm-dd')
 
 lbl_fte = tk.Label(root, text="FTE:", width=5, border=2, background="gray", fg='white')
 one_hour_fte = tk.Entry(root, width=5)
@@ -285,9 +294,9 @@ export_excell_checkbox = tk.Checkbutton(root, text='Экспорт в Excel',
                                         offvalue=0, background="gray")
 lbl_path = tk.Label(root, text="")
 
-text = Text( bg="darkgreen",  fg="white", wrap=WORD)
+text = Text(bg="darkgreen", fg="white", wrap=WORD)
 text.tag_config('title', justify=LEFT)
-                # ,              font=("Verdana", 24, 'bold'))
+# ,              font=("Verdana", 24, 'bold'))
 
 
 # grid layout
