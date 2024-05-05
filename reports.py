@@ -1,0 +1,176 @@
+import pandas as pd
+
+reports = [
+    {
+        "name": "Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период",
+        "header_row": 0,
+        "reportnumber": 1,
+        "data_columns": ["Дата"]
+    },
+    {
+        "name": "Контроль заполнения факта за период",
+        "header_row": 1,
+        "reportnumber": 2,
+        "data_columns": ["Дата"]
+    },
+    {
+        "name": "Сводный список запросов  для SLA",
+        "header_row": 2,
+        "reportnumber": 3,
+        "data_columns": ["Дата регистрации", "Крайний срок решения", "Дата решения", "Дата закрытия",
+                         "Дата последнего назначения в группу"],
+        "status": ["В ожидании", "Выполнено", "Закрыто", "Проект изменения", "Решен", "Назначен", "Выполняется",
+                   "Планирование изменения", "Выполнение изменения", "Экспертиза решения", "Согласование изменения",
+                   "Автроизация изменения"]  # Отмена  убрано
+    }
+]
+
+
+def report1(df, fte):
+    """
+    Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период
+
+    """
+    headers = ['Проект', 'План, FTE', 'Пользователь', 'Фактические трудозатраты (час.) (Сумма)',
+               'Кол-во штатных единиц']
+
+    fr = df[headers].loc[df['Менеджер проекта'] == 'Тапехин Алексей Александрович']
+    fr['Факт, FTE'] = round(fr['Фактические трудозатраты (час.) (Сумма)'] / fte, 2)
+    fr['Часы план'] = fte * fr['План, FTE']
+    fr['Остаток часов'] = fr['Часы план'] - fr['Фактические трудозатраты (час.) (Сумма)']
+    fr = fr.groupby(['Проект', 'Пользователь', 'Кол-во штатных единиц', 'План, FTE', 'Часы план',
+                     'Факт, FTE', 'Остаток часов'])['Фактические трудозатраты (час.) (Сумма)'].sum()
+    return fr
+
+
+def report2(df, date_begin, date_end, export_to_excell):
+    """
+    Контроль заполнения факта за период
+    """
+
+    frm = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
+             (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
+        ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
+    if export_to_excell == False:
+        result = frm.groupby(['Проект', 'ФИО']).agg({'Дата': 'max', 'Трудозатрады за день': 'sum'})
+    else:
+        date_range = pd.date_range(start=date_begin, end=date_end, freq='D')
+        data_reg = frm[frm['Дата'].isin(date_range)]
+        result = data_reg.sort_values(['Проект', 'ФИО', 'Дата'])
+    return result
+
+
+def calc(sum1, sum6, sum7, sum8, prefix):
+    # s6=0
+    if sum6.empty:
+        s6 = 0
+    else:
+        s6 = sum6[prefix]
+
+    if sum1.empty:
+        s1 = 0
+    else:
+        s1 = sum1[prefix]
+
+    if sum7.empty:
+        s7 = 0
+    else:
+        s7 = sum7[prefix]
+
+    if sum8.empty:
+        s8 = 0
+    else:
+        s8 = sum8[prefix]
+    # slap = round((1 - (sum6[prefix] + sum7[prefix]) / (sum8[prefix] + sum1[prefix])) * 100, 2)
+    slap = round((1 - (s6 + s7) / (s8 + s1)) * 100, 2)
+    return slap
+
+
+def report3(df, date_end, date_begin):
+    """
+    Сводный список запросов  для SLA
+    """
+    status = reports[2]['status']
+    try:
+        mdf = df
+        mdf = mdf.loc[mdf["Услуга"] == "КИС \"Производственный учет и отчетность\""]
+        mdf = mdf.loc[mdf["Статус"].isin(status)]
+        mdf["П2С"] = "П"
+        mdf.loc[mdf["Тип запроса"] == 'Нестандартное', "П2С"] = "СДОП"
+        mdf.loc[mdf["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
+
+        date_range = pd.date_range(start=date_begin, end=date_end, freq='D')
+
+        data_reg = mdf[mdf['Дата регистрации'].isin(date_range)]
+
+        sum1 = data_reg.groupby(['П2С'])["Зарегистрировано в период"].sum()
+        sum2 = mdf.groupby(['П2С'])['Выполнено в период'].sum()
+        # sum3 = df.loc[df['Тип запроса']=='Инцидент'].groupby(['П2С']).count()
+        inzindent = mdf[['П2С', 'Дата регистрации', 'Статус',
+                         'Просрочено в период', 'Дата закрытия']].loc[mdf['Тип запроса'] == 'Инцидент']
+
+        data_inzindent = inzindent[(inzindent['Дата регистрации'] <= date_end)
+                                   & (inzindent['Дата регистрации'] >= date_begin)]
+
+        sum3 = data_inzindent[['Дата регистрации', 'П2С']].groupby('П2С').count()
+
+        data_inzindent = inzindent[(inzindent['Статус'] == 'Закрыто') & (inzindent['Просрочено в период'] > 0)
+                                   & (inzindent['Дата закрытия'] <= date_end)
+                                   & (inzindent['Дата закрытия'] >= date_begin)]
+
+        sum4 = data_inzindent[['Просрочено в период', 'П2С']].groupby(['П2С']).count()
+
+        sum6 = data_reg[['Просрочено в период', 'П2С']].groupby(['П2С']).sum()
+
+        sum7 = mdf[['Открыто на конец периода с просрочкой', 'П2С']].groupby(['П2С']).sum()
+
+        sum8 = mdf.groupby(['П2С'])["Открыто на начало периода"].sum()
+
+        slap = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'П')
+        slac = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'С')
+
+        ss = (f"SLA для поддержки = {slap} "
+              f"SLA для сопровождения = {slac} "
+              f"\n----------------------------------\n"
+              f"1 Общее количество зарегистрированных заявок : {sum1}"
+              f"\n-Итого:{sum1.sum()}\n\n"
+              f"2 Общее количество выполненных заявок : {sum2}"
+              f"\n-Итого:{sum2.sum()}\n\n"
+              f"3 Общее количество зарегистрированных заявок за "
+              f" отчетный период, имеющих категорию «Инцидент»: {sum3}"
+              f"\n-Итого:{sum3.sum()}\n\n"
+              f"4 Количество заявок за период с превышением срока выполнения, имеющих категорию «Инцидент» : {sum4}"
+              f"\n-Итого:{sum4.sum()}\n\n"
+              f"5 Количество заявок за период с превышением времени реакции по поддержке: 0 \n\n"
+              f"6 (TUR1) Количество закрытых заявок на поддержку с нарушением сроков заявок:{sum6}"
+              f"\n-Итого:{sum6.sum()}\n\n"
+              f"7 (TUR2) Количество незакрытых заявок, с нарушением срока: {sum7}"
+              f"\n-Итого:{sum7.sum()}\n\n"
+              f"8 (TUR3) Количество перешедших с прошлого периода заявок на поддержку: {sum8}"
+              f"\n-Итого:{sum8.sum()}\n\n"
+              f"9 (TUR4) Количество зарегистрированных заявок по поддержке: {sum1}"
+              f"\n-Итого:{sum1.sum()}"
+
+              )
+        return ss
+    except Exception as e:
+        return f"Ошибка вычисления {e}"
+
+
+def get_data(reportnumber, date_end, date_begin, df, fte, export_excell):
+    frm = ''
+    if reportnumber == 1:
+        frm = report1(df, fte)
+    elif reportnumber == 3:
+        frm = report3(df, date_end=date_end, date_begin=date_begin)
+    elif reportnumber == 2:
+        frm = report2(df=df, date_begin=date_begin, date_end=date_end, export_to_excell=export_excell)
+    return frm
+
+
+def get_report(num_report, filename):
+    for items in reports:
+        if num_report == items['reportnumber']:
+            result = pd.read_excel(filename, header=items['header_row'], parse_dates=items['data_columns'],
+                                   date_format='%d.%m.%Y')
+            return result
