@@ -86,6 +86,32 @@ def report2(df, date_begin, date_end, export_to_excell):
     return result
 
 
+def calc(sum1, sum6, sum7, sum8, prefix):
+    # s6=0
+    if sum6.empty:
+        s6 = 0
+    else:
+        s6 = sum6[prefix]
+
+    if sum1.empty:
+        s1 = 0
+    else:
+        s1 = sum1[prefix]
+
+    if sum7.empty:
+        s7 = 0
+    else:
+        s7 = sum7[prefix]
+
+    if sum8.empty:
+        s8 = 0
+    else:
+        s8 = sum8[prefix]
+    # slap = round((1 - (sum6[prefix] + sum7[prefix]) / (sum8[prefix] + sum1[prefix])) * 100, 2)
+    slap = round((1 - (s6 + s7) / (s8 + s1)) * 100, 2)
+    return slap
+
+
 def report3(df, date_end, date_begin):
     """
     Сводный список запросов  для SLA
@@ -131,12 +157,10 @@ def report3(df, date_end, date_begin):
         sum7 = mdf[['Открыто на конец периода с просрочкой', 'П2С']].groupby(['П2С']).sum()
 
         sum8 = mdf.groupby(['П2С'])["Открыто на начало периода"].sum()
-        # Открыто на конец периода с просрочкой
-        #todo Нужна обработка наличия ключа и значения
-        slap = round((1 - (sum6['Просрочено в период']['П'] + sum7['Открыто на конец периода с просрочкой']['П'])
-                      / (sum8['П'] + sum1['П'])) * 100, 2)
-        slac = round((1 - (sum6['Просрочено в период']['С'] + sum7['Открыто на конец периода с просрочкой']['С'])
-                      / (sum8['С'] + sum1['С'])) * 100, 2)
+
+        slap = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'П')
+        slac = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'С')
+
         ss = (f"SLA для поддержки = {slap} "
               f"SLA для сопровождения = {slac} "
               f"\n----------------------------------\n"
