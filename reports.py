@@ -61,27 +61,15 @@ def report2(df, date_begin, date_end, export_to_excell):
 
 
 def calc(sum1, sum6, sum7, sum8, prefix):
-    # s6=0
-    if sum6.empty:
-        s6 = 0
-    else:
-        s6 = sum6[prefix]
 
-    if sum1.empty:
-        s1 = 0
-    else:
-        s1 = sum1[prefix]
+    s7 = sum7.get(prefix, 0)
+    s8 = sum8.get(prefix, 0)
+    s6 = sum6.get(prefix, 0)
+    s1 = sum1.get(prefix, 0)
 
-    if sum7.empty:
-        s7 = 0
-    else:
-        s7 = sum7[prefix]
+    if s8+s1 == 0:
+        s8 = 1
 
-    if sum8.empty:
-        s8 = 0
-    else:
-        s8 = sum8[prefix]
-    # slap = round((1 - (sum6[prefix] + sum7[prefix]) / (sum8[prefix] + sum1[prefix])) * 100, 2)
     slap = round((1 - (s6 + s7) / (s8 + s1)) * 100, 2)
     return slap
 
@@ -153,6 +141,7 @@ def report3(df, date_end, date_begin):
 
               )
         return ss
+
     except Exception as e:
         return f"Ошибка вычисления {e}"
 

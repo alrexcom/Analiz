@@ -23,7 +23,6 @@ def dec_fte(func):
 
     return wrap_fn
 
-
 @dec_fte
 def get_fte():
     try:
