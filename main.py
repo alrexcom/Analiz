@@ -82,6 +82,7 @@ cmb["state"] = "readonly"
 btn_go = tk.Button(root, text='Открыть', command=btn_go_click, width=20)
 label1 = tk.Label(root, text="", font=("Helvetica", 16), background="gray", fg='white')
 lblC = tk.Label(root, text="Период с", font="italic 10 bold", background="gray", fg='white')
+
 # Date_begin = tk.Entry(root, width=15, bd=1, bg="white", relief="solid", font="italic 10 bold")
 # Date_begin = DateEntry(root, date_pattern='dd/mm/YYYY')
 Date_begin = DateEntry(root, date_pattern='YYYY-mm-dd')

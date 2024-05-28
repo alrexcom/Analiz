@@ -7,100 +7,124 @@ from tkcalendar import DateEntry
 
 
 class App(tk.Tk):
-    def __init__(self):
+    def __init__(self, size):
         super().__init__()
         self.title('Анализ отчётов')
         self['background'] = '#EBEBEB'
-        self.conf = {'width': 600, 'height': 800, 'padx': (10, 30), 'pady': 10}
+        self.geometry(f"{size[0]}x{size[1]}")
+        self.minsize(size[0], size[1])
         self.bold_font = font.Font(family='Helvetica', size=13, weight='bold')
-        self.put_frames()
 
-    def put_frames(self):
-        self.add_head_frame = HeadFrame(self).grid(row=0, column=0, sticky='nsew')
-        # self.add_table_frame = TableFrame(self).grid(row=1, column=0, sticky='nsew')
+        self.myframe = HeadFrame(self)
+
+        # self.put_frames()
+        self.mainloop()
+
+    # def put_frames(self):
+    #     HeadFrame(self)
+    #     # .grid(row=0, column=0, sticky='nsew'))
+    #     # self.add_table_frame = TableFrame(self).grid(row=1, column=0, sticky='nsew')
 
 
-class HeadFrame(tk.Frame):
+class Component(ttk.Frame):
+    def __init__(self, parent, label_text, text_value):
+        super().__init__(master=parent)
+
+        # grid
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure((0, 1), weight=1, uniform='a')
+        ttk.Label(self, text=label_text, wraplength=300).grid(
+            padx=10, row=0, column=0, sticky='w')
+        ttk.Label(self, text=text_value, background="pink", width=100).grid(row=0, column=1, sticky='ew', padx=10)
+
+        self.pack(expand=1, fill=tk.BOTH)
+
+class HeadFrame(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-        self['background'] = self.master['background']
+        # ttk.Label(self, background='gray').pack(expand=True, fill=tk.BOTH)
+        # self['background'] = self.master['background']
+        # self.place(relx=0, rely=0, relheight=1, relwidth=0.5)
+        # self.config(width=50)
+        self.create_menu()
+        self.pack()
 
-    def init(self):
-        self.lbl_path.config(text="")
-        self.one_hour_fte.delete(0, END)
-        self.one_hour_fte.insert(0, '164')
+    def create_menu(self):
+        # Date_farme=tk.Frame(self, bg='yellow', relief=tk.RAISED)
+        # date_begin = tk.Entry(self, width=15, bd=1, bg="white", relief="solid", font="italic 10 bold")
+        lblzag = tk.Label(self, text="Анализ отчётов", font="italic 14 bold", background="gray", fg="lightgreen")
 
-    def cmb_function(self):
-        self.init()
+        lbl_frame = ttk.Frame(self, padding=10)
 
-    def btn_go_click(self):
-        dp = self.Date_end.get()
-        ds = self.Date_begin.get()
-        fte = self.get_fte()
-        export_excel = self.export_excell_var.get()
-        file_name = 'errors'
-        try:
-            file_name = filedialog.askopenfilename()
-            num_report = self.cmb.current() + 1
+        #
+        date_begin = DateEntry(lbl_frame, date_pattern='YYYY-mm-dd')
+        date_end = DateEntry(lbl_frame, width=15, relief="solid", date_pattern='YYYY-mm-dd')
+        lblpo = tk.Label(lbl_frame, text="ПО", bd=1, width=2, font="italic 10 bold", background="gray", fg='white')
+        lblC = tk.Label(lbl_frame, text="Период с", font="italic 10 bold", background="gray", fg='white')
+        export_excell_checkbox = tk.Checkbutton(lbl_frame, text='Экспорт в Excel',
+                                                onvalue=1,
+                                                offvalue=0)
 
-            report_data = reports.get_report(num_report=num_report, filename=file_name)
-            param = {'df': report_data, 'fte': fte, 'reportnumber': num_report, 'date_end': dp,
-                     'date_begin': ds,
-                     'export_excell': export_excel}
-            fr = reports.get_data(**param)
+        lbl_fte = tk.Label(lbl_frame, text="FTE:", width=5, border=2, background="gray", fg='white')
+        one_hour_fte = tk.Entry(lbl_frame, width=5)
+        btn_go = tk.Button(lbl_frame, text='Открыть', command=btn_go_click, width=15)
+        btn_clear = tk.Button(lbl_frame, text='Очистить', command=btn_go_click, width=15)
 
-            if self.export_excell_var.get():  # Checbox
-                save_file = path.dirname(file_name) + '/output.xlsx'
-                self.lbl_path.config(text=f"Файл сохранился в {save_file}")
-                fr.to_excel(save_file, index=True)
-            # text.insert(5.0, f'{file_name}\n \n \n {fr}')
-        except Exception as e:
-            print(e)
-            # text.insert(5.0, f"Не смог открыть файл {file_name}{e}")
+        # cmbfrm = ttk.Frame(self)
+        cmb = ttk.Combobox(self, values=[items["name"] for items in reports], state="readonly", width=100, height=2,
+                           font=('Helvetica', 11))
+        cmb.set('Выбор из списка отчетов')
+        cmb.bind('<<ComboboxSelected>>', cmb_function)
+        cmb["state"] = "readonly"
 
-    def put_widgets(self):
-        self.lblzag = tk.Label(self, text="Анализ отчётов", font="italic 14 bold", background="gray", fg="lightgreen")
+        info_farame = ttk.Frame(self, borderwidth=2, relief=tk.SOLID)
+        lbl_info = tk.Label(info_farame, text="Информация")
 
-        self.cmb = ttk.Combobox(self, values=[items["name"] for items in reports], state="readonly", width=90)
-        self.cmb.set('Выбор из списка отчетов')
-        self.cmb.bind('<<ComboboxSelected>>', self.cmb_function)
-        self.cmb["state"] = "readonly"
+        text = Text(bg="darkgreen", fg="white", wrap=WORD)
+        text.tag_config('title', justify=LEFT)
+        # from main import export_excell_var
 
-        self.btn_go = tk.Button(self, text='Открыть', command=self.btn_go_click, width=20)
-        self.label1 = tk.Label(self, text="", font=("Helvetica", 16), background="gray", fg='white')
-        self.lblC = tk.Label(self, text="Период с", font="italic 10 bold", background="gray", fg='white')
-
-        self.Date_begin = DateEntry(self, date_pattern='YYYY-mm-dd')
-
-        self.lblpo = tk.Label(self, text="ПО", bd=1, width=2, font="italic 10 bold", background="gray", fg='white')
-        self.Date_end = DateEntry(self, width=15, relief="solid", date_pattern='YYYY-mm-dd')
-
-        self.lbl_fte = tk.Label(self, text="FTE:", width=5, border=2, background="gray", fg='white')
-        self.one_hour_fte = tk.Entry(self, width=5)
-
-        self.export_excell_checkbox = tk.Checkbutton(self, text='Экспорт в Excel',
-                                                     variable=export_excell_var, onvalue=1,
-                                                     offvalue=0, background="gray")
-        self.lbl_path = tk.Label(self, text="")
-        self.columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
+        result_frame= ttk.Frame(self)
+        label1 = tk.Label(result_frame, text="", font=("Helvetica", 16), background="gray", fg='white')
+        #  Каркас
+        # self.columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
+        self.columnconfigure(0, weight=1)
         self.rowconfigure((0, 1, 2, 3), weight=1)
+        self.rowconfigure(4, weight=50)
 
-        self.lblzag.grid(column=0, row=0, columnspan=7, sticky='nwe', pady=3, padx=5)
+        lblzag.grid(column=0, row=0, sticky='nwe', pady=3, padx=5)
+        cmb.grid(column=0, row=1, sticky='nw', padx=10)
 
-        self.cmb.grid(column=0, row=1, columnspan=6, sticky='nw', padx=10)
-        self.btn_go.grid(column=6, row=1, sticky='ne', padx=10)
-        self.label1.grid(column=0, row=2, columnspan=7, sticky='news', padx=5)
+        # label1.grid(column=0, row=2, columnspan=5, sticky='news', padx=5)
 
-        self.lblC.grid(column=0, row=2, sticky='w', padx=10)
-        self.Date_begin.grid(column=1, row=2, sticky='w')
-        self.lblpo.grid(column=2, row=2, sticky='w')
-        self.Date_end.grid(column=3, row=2, sticky='w')
-        self.lbl_fte.grid(column=4, row=2, sticky='e')
-        self.one_hour_fte.grid(column=5, row=2, sticky='w')
-        self.export_excell_checkbox.grid(column=6, row=2, sticky='e', padx=10)
+        lbl_frame.grid(column=0, row=2, sticky='nw')
+        lblC.pack(side=LEFT)
+        date_begin.pack(side=LEFT, padx=5)
+        lblpo.pack(side=LEFT)
+        date_end.pack(side=LEFT, padx=5)
+        lbl_fte.pack(side=LEFT, padx=10)
+        one_hour_fte.pack(side=LEFT)
+        export_excell_checkbox.pack(side=LEFT, padx=10)
+        btn_clear.pack(side=LEFT, padx=5)
+        btn_go.pack(side=LEFT)
 
-        self.lbl_path.grid(column=0, row=3, columnspan=7, sticky='nwe', padx=10)
+        info_farame.grid(column=0, row=3, sticky='nwe', padx=10)
+        lbl_info.pack(side="left", padx=5, fill="x")
+
+        result_frame.grid(column=0, row=4, sticky='news', padx=5, pady=5)
+        # label1.pack(side="left", padx=5, fill="x")
+        txt = "Общее количество незакрытых заявок по сопровождению на начало периода"
+        Component(result_frame, label_text=txt, text_value='3')
+        Component(result_frame, label_text="Сервис менеджер", text_value="Тапехин Алексей")
+        Component(result_frame, label_text="Общее количество закрытых за период заявок по сопровождению"
+                  , text_value='9')
+
+def btn_go_click():
+    pass
 
 
-app = App()
-app.mainloop()
+def cmb_function(event):
+    pass
+
+
+App((800, 700))
