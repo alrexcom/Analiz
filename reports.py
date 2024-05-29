@@ -51,7 +51,7 @@ def report2(df, date_begin, date_end, export_to_excell):
     frm = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
              (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
         ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
-    if export_to_excell == False:
+    if not export_to_excell:
         result = frm.groupby(['Проект', 'ФИО']).agg({'Дата': 'max', 'Трудозатрады за день': 'sum'})
     else:
         date_range = pd.date_range(start=date_begin, end=date_end, freq='D')
@@ -61,13 +61,12 @@ def report2(df, date_begin, date_end, export_to_excell):
 
 
 def calc(sum1, sum6, sum7, sum8, prefix):
-
     s7 = sum7.get(prefix, 0)
     s8 = sum8.get(prefix, 0)
     s6 = sum6.get(prefix, 0)
     s1 = sum1.get(prefix, 0)
 
-    if s8+s1 == 0:
+    if s8 + s1 == 0:
         s8 = 1
 
     slap = round((1 - (s6 + s7) / (s8 + s1)) * 100, 2)
@@ -82,14 +81,16 @@ def report3(df, date_end, date_begin):
     try:
         mdf = df
         mdf = mdf.loc[mdf["Услуга"] == "КИС \"Производственный учет и отчетность\""]
-        mdf = mdf.loc[mdf["Статус"].isin(status)]
+        # mdf = mdf.loc[mdf["Статус"].isin(status)]
+        mdf = mdf.loc[mdf["Статус"] != 'Отменено']
         mdf["П2С"] = "П"
         mdf.loc[mdf["Тип запроса"] == 'Нестандартное', "П2С"] = "СДОП"
         mdf.loc[mdf["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
 
-        date_range = pd.date_range(start=date_begin, end=date_end, freq='D')
+        # date_range = pd.date_range(start=date_begin, end=date_end, freq='D')
 
-        data_reg = mdf[mdf['Дата регистрации'].isin(date_range)]
+        # data_reg = mdf[mdf['Дата регистрации'].isin(date_range)]
+        data_reg = mdf[(mdf['Дата регистрации'] >= date_begin and mdf['Дата регистрации'] <= date_end)]
 
         sum1 = data_reg.groupby(['П2С'])["Зарегистрировано в период"].sum()
         sum2 = mdf.groupby(['П2С'])['Выполнено в период'].sum()
@@ -146,6 +147,88 @@ def report3(df, date_end, date_begin):
         return f"Ошибка вычисления {e}"
 
 
+def report33(df, date_end, date_begin):
+    """
+    Сводный список запросов  для SLA
+    """
+    status = reports[2]['status']
+    try:
+        mdf = df
+        mdf = mdf.loc[mdf["Услуга"] == "КИС \"Производственный учет и отчетность\""]
+        mdf = mdf.loc[mdf["Статус"].isin(status)]
+        mdf["П2С"] = "П"
+        mdf.loc[mdf["Тип запроса"] == 'Нестандартное', "П2С"] = "СДОП"
+        mdf.loc[mdf["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
+
+        date_range = pd.date_range(start=date_begin, end=date_end, freq='D')
+
+        data_reg = mdf[mdf['Дата регистрации'].isin(date_range)]
+
+        sum1 = data_reg.groupby(['П2С'])["Зарегистрировано в период"].sum()
+        sum2 = mdf.groupby(['П2С'])['Выполнено в период'].sum()
+        # sum3 = df.loc[df['Тип запроса']=='Инцидент'].groupby(['П2С']).count()
+        inzindent = mdf[['П2С', 'Дата регистрации', 'Статус',
+                         'Просрочено в период', 'Дата закрытия']].loc[mdf['Тип запроса'] == 'Инцидент']
+
+        data_inzindent = inzindent[(inzindent['Дата регистрации'] <= date_end)
+                                   & (inzindent['Дата регистрации'] >= date_begin)]
+
+        sum3 = data_inzindent[['Дата регистрации', 'П2С']].groupby('П2С').count()
+
+        data_inzindent = inzindent[(inzindent['Статус'] == 'Закрыто') & (inzindent['Просрочено в период'] > 0)
+                                   & (inzindent['Дата закрытия'] <= date_end)
+                                   & (inzindent['Дата закрытия'] >= date_begin)]
+
+        sum4 = data_inzindent[['Просрочено в период', 'П2С']].groupby(['П2С']).count()
+
+        sum6 = data_reg[['Просрочено в период', 'П2С']].groupby(['П2С']).sum()
+
+        sum7 = mdf[['Открыто на конец периода с просрочкой', 'П2С']].groupby(['П2С']).sum()
+
+        sum8 = mdf.groupby(['П2С'])["Открыто на начало периода"].sum()
+
+        slap = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'П')
+        slac = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'С')
+
+        ss = {
+            "SLA для поддержки": slap,
+            "SLA для сопровождения": slac,
+            "1 Общее количество зарегистрированных заявок поддержка": sum1.get('П', 0),
+            "1 Общее количество зарегистрированных заявок сопровождение": sum1.get('С', 0),
+            "Итого": sum1.sum(),
+            "2 Общее количество выполненных заявок поддержка": sum2.get('П', 0),
+            "2 Общее количество выполненных заявок сопровождение": sum2.get('С', 0),
+            "Итого по 2": sum2.sum(),
+            "3 Общее количество зарегистрированных заявок за отчетный период, имеющих категорию «Инцидент» \n"
+            "поддержка": sum3.get('П', 0),
+            "сопровождение": sum3.get('С', 0),
+            "Итого по 3": sum3.sum(),
+            "4 Количество заявок за период с превышением срока выполнения, имеющих категорию «Инцидент»\n"
+            "поддержка ": sum4.get('П', 0),
+            "сопровождение ": sum4.get('С', 0),
+            "Итого по  4": sum4.sum(),
+            "5 Количество заявок за период с превышением времени реакции по поддержке": 0,
+            "6 (TUR1) \n Количество закрытых заявок на поддержку с нарушением сроков заявок \n"
+            " TUR1 поддержка": sum6.get('П', 0),
+            " TUR1 сопровождение": sum6.get('С', 0),
+            "Итого по  6": sum6.sum(),
+            "7 (TUR2) Количество незакрытых заявок, с нарушением срока \n"
+            " TUR2 поддержка": sum7.get('П', 0),
+            " TUR2 сопровождение": sum7.get('С', 0),
+            "Итого по 7": sum7.sum(),
+            "8 (TUR3) Количество перешедших с прошлого периода заявок на поддержку \n"
+            " TUR3 поддержка": sum8.get('П', 0),
+            " TUR3 сопровождение": sum8.get('С', 0),
+            "Итого по 8 ": sum8.sum(),
+            "9 (TUR4) Количество зарегистрированных заявок по поддержке": sum1,
+            "Всего": sum1.sum()
+        }
+        return ss
+
+    except Exception as e:
+        print(f"Ошибка вычисления {e}")
+
+
 def get_data(reportnumber, date_end, date_begin, df, fte, export_excell):
     frm = ''
     if reportnumber == 1:
@@ -156,6 +239,15 @@ def get_data(reportnumber, date_end, date_begin, df, fte, export_excell):
         frm = report2(df=df, date_begin=date_begin, date_end=date_end, export_to_excell=export_excell)
     return frm
 
+def get_data_test(reportnumber, date_end, date_begin, df, fte, export_excell):
+    frm = ''
+    if reportnumber == 1:
+        frm = report1(df, fte)
+    elif reportnumber == 3:
+        frm = report33(df, date_end=date_end, date_begin=date_begin)
+    elif reportnumber == 2:
+        frm = report2(df=df, date_begin=date_begin, date_end=date_end, export_to_excell=export_excell)
+    return frm
 
 def get_report(num_report, filename):
     for items in reports:

@@ -1,29 +1,16 @@
+# import tkcalendar as tc
+
 from reports import *
-from os import path
+# from tkscrolledframe import ScrolledFrame
 import tkinter as tk
-from tkinter import (END, LEFT, WORD, Text,
-                     filedialog, ttk, font)
-from tkcalendar import DateEntry
+from tkinter import (filedialog, font)
 
+import ttkbootstrap as ttk
+from ttkbootstrap.scrolled import ScrolledFrame
 
-class App(tk.Tk):
-    def __init__(self, size):
-        super().__init__()
-        self.title('Анализ отчётов')
-        self['background'] = '#EBEBEB'
-        self.geometry(f"{size[0]}x{size[1]}")
-        self.minsize(size[0], size[1])
-        self.bold_font = font.Font(family='Helvetica', size=13, weight='bold')
-
-        self.myframe = HeadFrame(self)
-
-        # self.put_frames()
-        self.mainloop()
-
-    # def put_frames(self):
-    #     HeadFrame(self)
-    #     # .grid(row=0, column=0, sticky='nsew'))
-    #     # self.add_table_frame = TableFrame(self).grid(row=1, column=0, sticky='nsew')
+themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
+          'yeti', 'pulse', 'united', 'morph', 'journal', 'darkly',
+          'superhero', 'solar', 'cyborg', 'vapor', 'simplex', 'cerculean']
 
 
 class Component(ttk.Frame):
@@ -39,92 +26,156 @@ class Component(ttk.Frame):
 
         self.pack(expand=1, fill=tk.BOTH)
 
+
+class App(tk.Tk):
+    def __init__(self, title, size, _theme):
+        super().__init__()
+        self.style = ttk.Style(theme=_theme)
+        self.title(title)
+        # self['background'] = '#EBEBEB'
+        self.geometry(f"{size[0]}x{size[1]}")
+        self.minsize(size[0], size[1])
+        self.maxsize(size[0], size[1])
+        self.bold_font = font.Font(family='Helvetica', size=13, weight='bold')
+
+        HeadFrame(self)
+        global result_frame
+
+        result_frame = ScrolledFrame(self, autohide=True)
+        result_frame.pack(side=tk.LEFT, expand=True, fill=tk.BOTH, pady=10)
+        self.mainloop()
+
+
 class HeadFrame(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-        # ttk.Label(self, background='gray').pack(expand=True, fill=tk.BOTH)
-        # self['background'] = self.master['background']
-        # self.place(relx=0, rely=0, relheight=1, relwidth=0.5)
-        # self.config(width=50)
-        self.create_menu()
-        self.pack()
+        self.show()
 
-    def create_menu(self):
-        # Date_farme=tk.Frame(self, bg='yellow', relief=tk.RAISED)
-        # date_begin = tk.Entry(self, width=15, bd=1, bg="white", relief="solid", font="italic 10 bold")
-        lblzag = tk.Label(self, text="Анализ отчётов", font="italic 14 bold", background="gray", fg="lightgreen")
-
-        lbl_frame = ttk.Frame(self, padding=10)
-
-        #
-        date_begin = DateEntry(lbl_frame, date_pattern='YYYY-mm-dd')
-        date_end = DateEntry(lbl_frame, width=15, relief="solid", date_pattern='YYYY-mm-dd')
-        lblpo = tk.Label(lbl_frame, text="ПО", bd=1, width=2, font="italic 10 bold", background="gray", fg='white')
-        lblC = tk.Label(lbl_frame, text="Период с", font="italic 10 bold", background="gray", fg='white')
-        export_excell_checkbox = tk.Checkbutton(lbl_frame, text='Экспорт в Excel',
-                                                onvalue=1,
-                                                offvalue=0)
-
-        lbl_fte = tk.Label(lbl_frame, text="FTE:", width=5, border=2, background="gray", fg='white')
-        one_hour_fte = tk.Entry(lbl_frame, width=5)
-        btn_go = tk.Button(lbl_frame, text='Открыть', command=btn_go_click, width=15)
-        btn_clear = tk.Button(lbl_frame, text='Очистить', command=btn_go_click, width=15)
-
-        # cmbfrm = ttk.Frame(self)
-        cmb = ttk.Combobox(self, values=[items["name"] for items in reports], state="readonly", width=100, height=2,
-                           font=('Helvetica', 11))
+    def show(self):
+        global ds, dp, msg_info, one_hour_fte, export_excell_var
+        cmbframe = ttk.Frame(self, padding=1)
+        # cmb_variable=tk.StringVar()
+        cmb = ttk.Combobox(cmbframe, values=[items["name"] for items in reports],
+                           state="readonly",
+                           height=4,
+                           font=("Calibri", 12)
+                           # , textvariable=cmb_variable
+                           )
         cmb.set('Выбор из списка отчетов')
         cmb.bind('<<ComboboxSelected>>', cmb_function)
-        cmb["state"] = "readonly"
+        cmb.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
 
-        info_farame = ttk.Frame(self, borderwidth=2, relief=tk.SOLID)
-        lbl_info = tk.Label(info_farame, text="Информация")
+        # btn_go = ttk.Button(cmbframe, text='Открыть',
+        #                     command=btn_go_click,
+        #                     width=15)
+        # btn_go.pack(padx=5)
+        cmbframe.pack(expand=True, fill=tk.BOTH)
 
-        text = Text(bg="darkgreen", fg="white", wrap=WORD)
-        text.tag_config('title', justify=LEFT)
-        # from main import export_excell_var
+        # Menu strip
+        # menu_frame = ttk.Frame(self, padding=5, borderwidth=5, relief='sunken')
+        menu_frame = ttk.Frame(self, padding=5, borderwidth=5)
 
-        result_frame= ttk.Frame(self)
-        label1 = tk.Label(result_frame, text="", font=("Helvetica", 16), background="gray", fg='white')
-        #  Каркас
-        # self.columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
-        self.columnconfigure(0, weight=1)
-        self.rowconfigure((0, 1, 2, 3), weight=1)
-        self.rowconfigure(4, weight=50)
+        ds = ttk.DateEntry(
+            master=menu_frame,
+            width=15,
+            relief="solid",
+            dateformat='%d-%m-%Y'
+        )
+        ds.pack(side=tk.LEFT, padx=10)
+        ds.entry.delete(0, tk.END)
+        ds.entry.insert(0, '01-01-2024')
 
-        lblzag.grid(column=0, row=0, sticky='nwe', pady=3, padx=5)
-        cmb.grid(column=0, row=1, sticky='nw', padx=10)
+        dp = ttk.DateEntry(menu_frame,
+                           width=15,
+                           relief="solid",
+                           dateformat='%d-%m-%Y')
+        dp.pack(side=tk.LEFT, padx=10)
 
-        # label1.grid(column=0, row=2, columnspan=5, sticky='news', padx=5)
+        ttk.Label(menu_frame, text="FTE:", width=5,
+                  border=2, font=("Calibri", 12, 'bold'),
+                  background="gray", foreground='white').pack(side=tk.LEFT)
 
-        lbl_frame.grid(column=0, row=2, sticky='nw')
-        lblC.pack(side=LEFT)
-        date_begin.pack(side=LEFT, padx=5)
-        lblpo.pack(side=LEFT)
-        date_end.pack(side=LEFT, padx=5)
-        lbl_fte.pack(side=LEFT, padx=10)
-        one_hour_fte.pack(side=LEFT)
-        export_excell_checkbox.pack(side=LEFT, padx=10)
-        btn_clear.pack(side=LEFT, padx=5)
-        btn_go.pack(side=LEFT)
+        one_hour_fte = tk.IntVar()
 
-        info_farame.grid(column=0, row=3, sticky='nwe', padx=10)
-        lbl_info.pack(side="left", padx=5, fill="x")
+        fte = ttk.Entry(menu_frame, width=5, font=("Calibri", 12),
+                        textvariable=one_hour_fte)
+        fte.delete(0, tk.END)
+        fte.insert(0, '164')
+        fte.pack(side=tk.LEFT, padx=10)
 
-        result_frame.grid(column=0, row=4, sticky='news', padx=5, pady=5)
-        # label1.pack(side="left", padx=5, fill="x")
-        txt = "Общее количество незакрытых заявок по сопровождению на начало периода"
-        Component(result_frame, label_text=txt, text_value='3')
-        Component(result_frame, label_text="Сервис менеджер", text_value="Тапехин Алексей")
-        Component(result_frame, label_text="Общее количество закрытых за период заявок по сопровождению"
-                  , text_value='9')
+        export_excell_var = tk.IntVar()
+        ttk.Checkbutton(menu_frame, text='Экспорт в Excel',
+                        variable=export_excell_var,
+                        onvalue=1,
+                        offvalue=0).pack(side=tk.LEFT, padx=5)
 
-def btn_go_click():
-    pass
+        btn_clear = ttk.Button(menu_frame, text='Очистить',
+                               command=btn_clear_click,
+                               width=10)
+        btn_clear.pack(padx=5, side=tk.LEFT)
+
+        btn_go = ttk.Button(menu_frame, text='Открыть',
+                            command=btn_go_click,
+                            width=10)
+        btn_go.pack(side=tk.LEFT)
+
+        menu_frame.pack(expand=True, fill=tk.BOTH)
+
+        # string info
+        info_frame = ttk.Frame(self, padding=1, borderwidth=5,
+                               relief='raised')
+        msg_info = tk.StringVar()
+        ttk.Label(master=info_frame, textvariable=msg_info,
+                  background='#EBEBEB',
+                  foreground="red", font=("Calibri", 12),
+                  text="Информация").pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
+        info_frame.pack(expand=True, fill=tk.BOTH)
+
+        self.pack()
+
+
+num_report = 0
+
+
+def btn_clear_click():
+    # print(result_frame.winfo_children())
+    for item in result_frame.winfo_children():
+        item.destroy()
 
 
 def cmb_function(event):
-    pass
+    # print(event.widget.current() + 1)
+    global num_report
+    num_report = event.widget.current() + 1
 
 
-App((800, 700))
+def btn_go_click():
+    date_begin = ds.entry.get()
+    date_end = dp.entry.get()
+    fte = one_hour_fte.get()
+    export = export_excell_var.get()
+    # print(f"c {date_begin} по {date_end}")
+    # msg_info.set(f"c {date_begin} по {date_end} отчет № {num_report},"
+    #              f" fte ={fte} , export = {export}")
+    file_name = filedialog.askopenfilename()
+    report_data = get_report(num_report=num_report, filename=file_name)
+
+    param = {'df': report_data,
+             'fte': fte,
+             'reportnumber': num_report,
+             'date_end': date_end,
+             'date_begin': date_begin,
+             'export_excell': export}
+
+    fr = get_data_test(**param)
+    for item in fr.items():
+        key, val = item
+        # print(key, val)
+        Component(result_frame, label_text=key, text_value=val)
+
+
+# ttk.window(themename='dark')
+
+
+App("Анализ отчётов", (800, 700), 'yeti')
+# App("Анализ отчётов", (800, 700), 'superhero')
