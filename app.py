@@ -1,4 +1,4 @@
-# import tkcalendar as tc
+from tkinter.ttk import Scrollbar
 
 from reports import *
 # from tkscrolledframe import ScrolledFrame
@@ -20,9 +20,21 @@ class Component(ttk.Frame):
         # grid
         self.rowconfigure(0, weight=1)
         self.columnconfigure((0, 1), weight=1, uniform='a')
-        ttk.Label(self, text=label_text, wraplength=300).grid(
-            padx=10, row=0, column=0, sticky='w')
-        ttk.Label(self, text=text_value, background="pink", width=100).grid(row=0, column=1, sticky='ew', padx=10)
+        ttk.Label(self,
+                  text=label_text,
+                  wraplength=400,
+                  font=("Helvetica", 12),
+                  justify=tk.RIGHT
+                  ).grid(
+            padx=5, row=0, column=0,  sticky=tk.W)
+        ttk.Label(self,
+                  text=text_value,
+                  background="pink",
+                  border=2,
+                  relief=tk.SUNKEN,
+                  anchor=tk.CENTER,
+                  font=("Helvetica", 14),
+                  width=10).grid(row=0, column=1)
 
         self.pack(expand=1, fill=tk.BOTH)
 
@@ -39,11 +51,30 @@ class App(tk.Tk):
         self.bold_font = font.Font(family='Helvetica', size=13, weight='bold')
 
         HeadFrame(self)
-        global result_frame
+        global result_frame, table_frame
 
         result_frame = ScrolledFrame(self, autohide=True)
+
         result_frame.pack(side=tk.LEFT, expand=True, fill=tk.BOTH, pady=10)
+
+        table_frame =ttk.Frame(self)
+        table_frame.pack(expand=1, fill=tk.BOTH, pady=10, padx=10)
         self.mainloop()
+
+
+class TableFrame(tk.Frame):
+    def __init__(self, parent, data):
+        super().__init__(parent)
+        headers = data['columnsname']
+        tree_scroll = Scrollbar(table_frame, orient=tk.HORIZONTAL)
+        table = ttk.Treeview(table_frame, columns=headers,
+                             show='headings', xscrollcommand=tree_scroll.set)
+
+        for column in headers:
+            table.heading(column, text=column)
+
+        for row in data['values']:
+            table.insert('', 'end', values=data['values'][row])
 
 
 class HeadFrame(ttk.Frame):
@@ -54,25 +85,19 @@ class HeadFrame(ttk.Frame):
     def show(self):
         global ds, dp, msg_info, one_hour_fte, export_excell_var
         cmbframe = ttk.Frame(self, padding=1)
-        # cmb_variable=tk.StringVar()
+        # name_report=tk.StringVar()
         cmb = ttk.Combobox(cmbframe, values=[items["name"] for items in reports],
                            state="readonly",
                            height=4,
                            font=("Calibri", 12)
-                           # , textvariable=cmb_variable
+                           # , textvariable=name_report
                            )
         cmb.set('Выбор из списка отчетов')
         cmb.bind('<<ComboboxSelected>>', cmb_function)
         cmb.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
-
-        # btn_go = ttk.Button(cmbframe, text='Открыть',
-        #                     command=btn_go_click,
-        #                     width=15)
-        # btn_go.pack(padx=5)
         cmbframe.pack(expand=True, fill=tk.BOTH)
 
         # Menu strip
-        # menu_frame = ttk.Frame(self, padding=5, borderwidth=5, relief='sunken')
         menu_frame = ttk.Frame(self, padding=5, borderwidth=5)
 
         ds = ttk.DateEntry(
@@ -134,7 +159,7 @@ class HeadFrame(ttk.Frame):
         self.pack()
 
 
-num_report = 0
+# num_report = 0
 
 
 def btn_clear_click():
@@ -166,16 +191,20 @@ def btn_go_click():
              'date_end': date_end,
              'date_begin': date_begin,
              'export_excell': export}
-
+    # https: // www.youtube.com / watch?v = mop6g - c5HEY & list = PLZHIeS5WrW4IhlHiQq9fmlTu4F_YIc4ek & index = 10
     fr = get_data_test(**param)
-    for item in fr.items():
-        key, val = item
-        # print(key, val)
-        Component(result_frame, label_text=key, text_value=val)
+    if num_report == 1:
+        # result_frame.destroy()
+        TableFrame(result_frame,fr)
+    else:
+        for item in fr.items():
+            key, val = item
+            # print(key, val)
+            Component(result_frame, label_text=key, text_value=val)
 
 
 # ttk.window(themename='dark')
 
 
-App("Анализ отчётов", (800, 700), 'yeti')
+App("Анализ отчётов", (800, 500), 'yeti')
 # App("Анализ отчётов", (800, 700), 'superhero')
