@@ -51,36 +51,26 @@ def report1_test(df, fte):
     fact_sum = 'Фактические трудозатраты (час.) (Сумма)'
     headers = ['Проект', 'План, FTE', 'Пользователь', 'Фактические трудозатраты (час.) (Сумма)',
                'Кол-во штатных единиц']
-
-    fr = df[headers].loc[df['Менеджер проекта'] == 'Тапехин Алексей Александрович']
+    user = 'Тапехин Алексей Александрович'
+    # fr = df[headers][[df['Пользователь'] == user | df['Менеджер проекта'] == user]]
+    fr = df[headers].loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user)]
 
     fact_fte = round((fr[fact_sum] / fte), 2)
     fr['Факт, FTE'] = fact_fte
     hours_plan = fte * fr['План, FTE']
-    fr['Часы план'] = round(hours_plan,2)
-    hours_remain = round(hours_plan - fr[fact_sum],2)
+    fr['Часы план'] = round(hours_plan, 2)
+    hours_remain = round(hours_plan - fr[fact_sum], 2)
     fr['Остаток часов'] = hours_remain
     # fr = fr.groupby(['Проект', 'Пользователь', 'Кол-во штатных единиц', 'План, FTE', 'Часы план',
     #                  'Факт, FTE', 'Остаток часов'])[fact_sum].sum()
     # fr['columnsheader'] = set(fr)
     # data={'Факт, FTE':fact_fte}
-
-    mydic = dict()
-    data = list()
-
-    # for id_ in fr.index:
-    #     # print(id)
-    #     mydic[id_] = {f"d{index}": element for index, element in enumerate(fr.loc[id_])}
+    fr = fr[fr['Факт, FTE'] > 0]
+    mydic = {}
     for id_ in fr.index:
-        mydic[id_] =list(fr.loc[id_])
-        # for column in list(fr.columns):
-        #     mydic[id_] = list(fr[column])
-            # mydic[id_] ={f"num{id_}": list(fr[column])}
+        mydic[id_] = list(fr.loc[id_])
 
-
-
-
-    return {'columnsname': list(fr.columns), 'values':mydic}
+    return {'columnsname': list(fr.columns), 'values': mydic}
 
     # return mydic
 
@@ -189,7 +179,7 @@ def report3(df, date_end, date_begin):
         return f"Ошибка вычисления {e}"
 
 
-def report33(df, date_end, date_begin):
+def report3_test(df, date_end, date_begin):
     """
     Сводный список запросов  для SLA
     """
@@ -246,6 +236,7 @@ def report33(df, date_end, date_begin):
         slac = calc(sum1, sum6[tur1], sum7[tur2], sum8[tur3], 'С')
         # slap = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'П')
         #  slac = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'С')
+        # columnsname = ["Наименование", "Значение"]
 
         ss = {
             "SLA для поддержки": slap,
@@ -277,7 +268,7 @@ def report33(df, date_end, date_begin):
                 sum7[tur2].sum(),
             "       tur2 поддержка": sum7[tur2].get('П', 0),
             "       tur2 сопровождение": sum7[tur2].get('С', 0)
-            #
+
             # " Общее количество зарегистрированных заявок за отчетный период, имеющих категорию «Инцидент»":sum3.sum(),
             # "       поддержка": sum3.get('П', 0),
             # "       сопровождение": sum3.get('С', 0),
@@ -287,6 +278,8 @@ def report33(df, date_end, date_begin):
             # "       сопровождение ": sum4.get('С', 0)
         }
         return ss
+
+
 
     except Exception as e:
         print(f"Ошибка вычисления {e}")
@@ -308,7 +301,7 @@ def get_data_test(reportnumber, date_end, date_begin, df, fte, export_excell):
     if reportnumber == 1:
         frm = report1_test(df, fte)
     elif reportnumber == 3:
-        frm = report33(df, date_end=date_end, date_begin=date_begin)
+        frm = report3_test(df, date_end=date_end, date_begin=date_begin)
     elif reportnumber == 2:
         frm = report2(df=df, date_begin=date_begin, date_end=date_end, export_to_excell=export_excell)
     return frm
@@ -319,4 +312,13 @@ def get_report(num_report, filename):
         if num_report == items['reportnumber']:
             result = pd.read_excel(filename, header=items['header_row'], parse_dates=items['data_columns'],
                                    date_format='%d.%m.%Y')
+            return result
+
+
+def get_report_test(name_report, filename):
+    for items in reports:
+        if name_report == items['name']:
+            result = (items['reportnumber'],
+                      pd.read_excel(filename, header=items['header_row'], parse_dates=items['data_columns'],
+                                    date_format='%d.%m.%Y'))
             return result
