@@ -66,11 +66,18 @@ def report1_test(df, fte):
     # fr['columnsheader'] = set(fr)
     # data={'Факт, FTE':fact_fte}
     fr = fr[fr['Факт, FTE'] > 0]
-    mydic = {}
+    data = list()
     for id_ in fr.index:
-        mydic[id_] = list(fr.loc[id_])
+        data.append(tuple(fr.loc[id_]))
+    columns = [{"name": items} for items in fr.columns]
 
-    return {'columnsname': list(fr.columns), 'values': mydic}
+    # for id_ in fr.index:
+    #     mydic[id_] = list(fr.loc[id_])
+    #
+    # for item in mydic:
+    #     data.append(tuple(fr['values'][item]))
+
+    return {'columns': columns, 'data': data}
 
     # return mydic
 
@@ -90,6 +97,58 @@ def report2(df, date_begin, date_end, export_to_excell):
         data_reg = frm[frm['Дата'].isin(date_range)]
         result = data_reg.sort_values(['Проект', 'ФИО', 'Дата'])
     return result
+
+
+def report2_test(df, date_begin, date_end, export_to_excell):
+    """
+    Контроль заполнения факта за период
+    """
+
+    frm = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
+             (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
+        ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
+    if not export_to_excell:
+        result = frm.groupby(['Проект', 'ФИО']).agg({'Дата': 'max', 'Трудозатрады за день': 'sum'})
+    else:
+        date_range = pd.date_range(start=date_begin, end=date_end, freq='D')
+        data_reg = frm[frm['Дата'].isin(date_range)]
+        result = data_reg.sort_values(['Проект', 'ФИО', 'Дата'])
+
+    headers = (list(result.index.names) + list(result.columns))
+    columns = [{"name": items} for items in headers]
+
+    data = list()
+    data_ = list()
+    res = list()
+    dct = dict()
+    # for id_ in fr.index:
+    #     data.append(tuple(fr.loc[id_]))
+    for id_ in result.index:
+        data.append(id_)
+    for i in result.values:
+        data_.append(tuple(i))
+
+    for t in result.items():
+        res.append(tuple(data[t] + data_[t]))
+    # zz=list(zip(data,data_))
+
+    for id_ in result.columns:
+        dct = [{id_: i} for i in result[id_]]
+
+    print(dct)
+    # lst.append(i)
+
+    # res = {'columns': [{"name": i} for i in result.columns], 'data': data}
+    # for items in id_:
+    #     lst.append(items)
+    #     data.append(tuple(lst))
+    # data.append(tuple(result.loc[id_]))
+
+    #
+
+    # dic = dict(zip(result.columns, res))
+
+    return {'columns': columns, 'data': data}
 
 
 def calc(sum1, sum6, sum7, sum8, prefix):
@@ -185,6 +244,7 @@ def report3_test(df, date_end, date_begin):
     """
     status = reports[2]['status']
     try:
+
         mdf = df
         mdf = mdf.loc[mdf["Услуга"] == "КИС \"Производственный учет и отчетность\""]
         mdf = mdf.loc[mdf["Статус"].isin(status)]
@@ -192,12 +252,12 @@ def report3_test(df, date_end, date_begin):
         mdf.loc[mdf["Тип запроса"] == 'Нестандартное', "П2С"] = "СДОП"
         mdf.loc[mdf["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
 
-        # date_range = pd.date_range(start=date_begin, end=date_end, freq='D')
-
-        # data_reg = mdf[mdf['Дата регистрации'].isin(date_range)]
-
-        data_reg = mdf[(mdf['Дата регистрации'] >= date_begin)
-                       & (mdf['Дата регистрации'] <= date_end)]
+        # date_range = pd.date_range(start=pd.to_datetime(date_begin).strftime('%Y-%m-%d'), end=pd.to_datetime(
+        # date_end).strftime('%Y-%m-%d'), freq='D') mdf['Дата регистрации'] = pd.to_datetime(mdf['Дата регистрации'],
+        # errors='coerce', format='%Y-%m-%d') data_reg = mdf[mdf['Дата регистрации'].isin(date_range)]
+        data_reg = mdf[(mdf['Дата регистрации'] >= date_begin) & (mdf['Дата регистрации'] <= date_end)]
+        # data_reg = mdf[(mdf['Дата регистрации'] >= date_begin)
+        #                & (mdf['Дата регистрации'] <= date_end)]
 
         tur4 = "Зарегистрировано в период"
         sum1 = data_reg.groupby(['П2С'])[tur4].sum()
@@ -221,16 +281,17 @@ def report3_test(df, date_end, date_begin):
         # s3 = 'Дата регистрации'
         # sum3 = data_inzindent[s3, 'П2С'].groupby('П2С').count()
 
-        data_inzindent = inzindent[(inzindent['Статус'] == 'Закрыто') & (inzindent['Просрочено в период'] > 0)
-                                   & (inzindent['Дата закрытия'] <= date_end)
-                                   & (inzindent['Дата закрытия'] >= date_begin)]
+        data_prosr = mdf[(mdf['Статус'] == 'Закрыто') & (mdf['Просрочено в период'] > 0)
+                         & (mdf['Дата закрытия'] <= date_end)
+                         & (mdf['Дата закрытия'] >= date_begin)]
 
         # sum4 = data_inzindent[['Просрочено в период', 'П2С']].groupby(['П2С']).count()
         tur1 = 'Выполнено с просрочкой в период'
         # sum6 = data_reg[['Просрочено в период', 'П2С']].groupby(['П2С']).sum()
         sum6 = data_reg[[tur1, 'П2С']].groupby(['П2С']).sum()
-        tur2 = 'Открыто на конец периода с просрочкой'
-        sum7 = mdf[[tur2, 'П2С']].groupby(['П2С']).sum()
+        tur2 = 'Просрочено в период'
+        # sum7 = mdf[[tur2, 'П2С']].groupby(['П2С']).sum()
+        sum7 = data_prosr[[tur2, 'П2С']].groupby(['П2С']).sum()
 
         slap = calc(sum1, sum6[tur1], sum7[tur2], sum8[tur3], 'П')
         slac = calc(sum1, sum6[tur1], sum7[tur2], sum8[tur3], 'С')
@@ -238,9 +299,13 @@ def report3_test(df, date_end, date_begin):
         #  slac = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'С')
         # columnsname = ["Наименование", "Значение"]
 
+        errsla = mdf[["Номер запроса", "Исполнитель", "Комментарий к нарушению SLA"]][
+            mdf["Комментарий к нарушению SLA"].notna()]
+
         ss = {
-            "SLA для поддержки": slap,
-            "SLA для сопровождения": slac,
+            "9 Уровень исполнения SLA общий": round(100 * (sum2.sum() - sum6[tur1].sum())/sum2.sum(),2),
+            "       поддержки": slap,
+            "       сопровождения": slac,
 
             "1 ( tur3 ) Общее количество незакрытых заявок по сопровождению/поддержке на начало периода ": sum8[
                 tur3].sum(),
@@ -264,10 +329,15 @@ def report3_test(df, date_end, date_begin):
             "       p5 поддержка": sum51.get('П', 0),
             "       p5 сопровождение": sum51.get('С', 0),
 
-            "7 (tur2) Количество заявок за период с превышением времени реакции по сопровождению/поддержке":
+            "7 (tur2) Количество заявок за период с превышением срока выполнения ":
                 sum7[tur2].sum(),
-            "       tur2 поддержка": sum7[tur2].get('П', 0),
-            "       tur2 сопровождение": sum7[tur2].get('С', 0)
+            "       по поддержке": sum7[tur2].get('П', 0),
+            "       по сопровождению": sum7[tur2].get('С', 0),
+
+            # "7? (tur2) Количество заявок за период с превышением времени реакции по сопровождению/поддержке":
+            #     sum7[tur2].sum(),
+            # "       tur2 поддержка": sum7[tur2].get('П', 0),
+            # "       tur2 сопровождение": sum7[tur2].get('С', 0)
 
             # " Общее количество зарегистрированных заявок за отчетный период, имеющих категорию «Инцидент»":sum3.sum(),
             # "       поддержка": sum3.get('П', 0),
@@ -277,10 +347,30 @@ def report3_test(df, date_end, date_begin):
             # "       поддержка ": sum4.get('П', 0),
             # "       сопровождение ": sum4.get('С', 0)
         }
-        return ss
+        data = []
 
+        mu = errsla.to_dict('index')
+        for item in mu.items():
+            key, val = item
+            data.append((
+                        f"ERR SLA: запрос {val['Номер запроса']} / {val["Исполнитель"]} :{val['Комментарий к нарушению SLA']}",
+                        "1"))
 
+        columns = [{
+            "name": "Наименование",
+            "width": 600,
+            "anchor": 'w'
+        },
+            {
+                "name": "Значение",
+                "width": 100,
+                "anchor": 'center'
+            }]
+        for item in ss.items():
+            key, val = item
+            data.append((key, val))
 
+        return {'columns': columns, 'data': data}
     except Exception as e:
         print(f"Ошибка вычисления {e}")
 
@@ -297,13 +387,15 @@ def get_data(reportnumber, date_end, date_begin, df, fte, export_excell):
 
 
 def get_data_test(reportnumber, date_end, date_begin, df, fte, export_excell):
+    data_begin = pd.to_datetime(date_begin).strftime('%Y-%m-%d')
+    data_end = pd.to_datetime(date_end).strftime('%Y-%m-%d')
     frm = ''
     if reportnumber == 1:
         frm = report1_test(df, fte)
     elif reportnumber == 3:
-        frm = report3_test(df, date_end=date_end, date_begin=date_begin)
+        frm = report3_test(df, date_end=data_end, date_begin=data_begin)
     elif reportnumber == 2:
-        frm = report2(df=df, date_begin=date_begin, date_end=date_end, export_to_excell=export_excell)
+        frm = report2_test(df=df, date_begin=data_begin, date_end=data_end, export_to_excell=export_excell)
     return frm
 
 
