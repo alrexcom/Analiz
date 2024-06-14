@@ -6,7 +6,6 @@ import ttkbootstrap as ttk
 from univunit import Table
 from reports import *
 
-
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
           'yeti', 'pulse', 'united', 'morph', 'journal', 'darkly',
           'superhero', 'solar', 'cyborg', 'vapor', 'simplex', 'cerculean']
@@ -64,9 +63,8 @@ class App(tk.Tk):
         cmb = ttk.Combobox(cmb_frame, values=[items["name"] for items in reports],
                            state="readonly",
                            height=4,
-                           font=("Calibri", 12)
-                           , textvariable=self.name_report
-                           # , textvariable=name_report
+                           font=("Calibri", 12),
+                           textvariable=self.name_report
                            )
         cmb.set('Выбор из списка отчетов')
         cmb.bind('<<ComboboxSelected>>', self.cmb_function)
@@ -115,9 +113,10 @@ class App(tk.Tk):
         fte = self.one_hour_fte.get()
         export = self.export_excell_var.get()
         name_report = self.name_report.get()
+        file_name = ''
         try:
             file_name = filedialog.askopenfilename()
-            report_data = get_report_test(name_report=name_report, filename=file_name)
+            report_data = get_reports(name_report=name_report, filename=file_name)
 
             num_report = report_data[0]
             param = {'df': report_data[1],
@@ -125,9 +124,10 @@ class App(tk.Tk):
                      'reportnumber': num_report,
                      'date_end': date_end,
                      'date_begin': date_begin,
-                     'export_excell': export}
+                     'export_excell': export,
+                     'support': False}
             # https: // www.youtube.com / watch?v = mop6g - c5HEY & list = PLZHIeS5WrW4IhlHiQq9fmlTu4F_YIc4ek & index=10
-            fr = get_data_test(**param)
+            fr = get_data_report(**param)
 
             self.table.configure_columns(fr['columns'])
             self.table.populate_table(fr['data'])
@@ -141,9 +141,11 @@ class App(tk.Tk):
     def update_window_size(self):
         # Рассчитываем общую ширину столбцов
         total_width = sum(self.table.tree.column(col, 'width') for col in self.table.tree['columns'])
+        row_count = len(self.table.tree.get_children())
+        height = (row_count * 25)+180
         # Обновляем размер окна
-        self.geometry(f'{total_width}x400')
+        self.geometry(f'{total_width}x{height}')
 
 
-app = App("Анализ отчётов", (800, 500), 'yeti')
+app = App("Анализ отчётов", (800,500), 'yeti')
 app.mainloop()
