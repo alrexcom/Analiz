@@ -37,7 +37,11 @@ class App(tk.Tk):
         self.fte = ttk.Entry(self.fte_frame, width=5, font=("Calibri", 12),
                              textvariable=self.one_hour_fte)
 
-        self.export_excell_var = tk.IntVar()
+        # self.export_excell_var = tk.IntVar()
+        # self.export=ttk.Checkbutton(self.menu_frame, text='Экспорт в Excel',
+        #                 variable=self.export_excell_var,
+        #                 onvalue=1,
+        #                 offvalue=0)
 
         self.style = ttk.Style(theme=_theme)
         self.title(title)
@@ -111,21 +115,24 @@ class App(tk.Tk):
         date_begin = self.ds.entry.get()
         date_end = self.dp.entry.get()
         fte = self.one_hour_fte.get()
-        export = self.export_excell_var.get()
+        # export = bool(self.export_excell_var.get())
         name_report = self.name_report.get()
         file_name = ''
         try:
             file_name = filedialog.askopenfilename()
             report_data = get_reports(name_report=name_report, filename=file_name)
 
+            data_begin = pd.to_datetime(date_begin, dayfirst=True).strftime('%Y-%m-%d')
+            data_end = pd.to_datetime(date_end, dayfirst=True).strftime('%Y-%m-%d')
+
             num_report = report_data[0]
             param = {'df': report_data[1],
                      'fte': fte,
                      'reportnumber': num_report,
-                     'date_end': date_end,
-                     'date_begin': date_begin,
-                     'export_excell': export,
-                     'support': False}
+                     'date_end': data_end,
+                     'date_begin': data_begin,
+                     # 'export_excell': export
+                     }
             # https: // www.youtube.com / watch?v = mop6g - c5HEY & list = PLZHIeS5WrW4IhlHiQq9fmlTu4F_YIc4ek & index=10
             fr = get_data_report(**param)
 
