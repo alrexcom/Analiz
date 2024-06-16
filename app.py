@@ -149,10 +149,10 @@ class App(tk.Tk):
         # Рассчитываем общую ширину столбцов
         total_width = sum(self.table.tree.column(col, 'width') for col in self.table.tree['columns'])
         row_count = len(self.table.tree.get_children())
-        height = (row_count * 25)+180
+        height = (row_count * 25) + 180
         # Обновляем размер окна
         self.geometry(f'{total_width}x{height}')
 
 
-app = App("Анализ отчётов", (800,500), 'yeti')
+app = App("Анализ отчётов", (800, 500), 'yeti')
 app.mainloop()

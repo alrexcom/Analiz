@@ -122,19 +122,19 @@ def report2(**params):
     # else:
     date_range = pd.date_range(start=params['date_begin'], end=params['date_end'], freq='D')
     data_reg = frm[frm['Дата'].isin(date_range)]
-    result = data_reg.sort_values(['ФИО','Проект',  'Дата'])
+    result = data_reg.sort_values(['ФИО', 'Проект', 'Дата'])
 
     # headers = (list(result.index.names) + list(result.columns))
     # columns = [{"name":  items} for items in headers]
     # columns = [{"name": (lambda items: items if items is not None else 'index')(items)} for items in
     #            headers]
 
-    columns=[]
+    columns = []
     for items in result.columns:
         if items is not None:
             columns.append({"name": items})
 
-    data=[]
+    data = []
     for i in result.values:
         data.append(tuple(i))
 
@@ -171,8 +171,6 @@ def report2(**params):
     #
 
     # dic = dict(zip(result.columns, res))
-
-
 
 
 def calc(sum1, sum6, sum7, sum8, prefix):
@@ -391,7 +389,7 @@ def sla_sopr(**params):
     """
       Данные по SLA Сопровождение
      """
-    mdf = params['mdf']
+
     data_reg = params["data_reg"]
 
     par = get_data_sla(**params)
