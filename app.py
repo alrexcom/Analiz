@@ -2,9 +2,10 @@ import tkinter as tk
 from tkinter import (filedialog, font, messagebox)
 
 import ttkbootstrap as ttk
+from ttkbootstrap import DateEntry
 
+from reports import (pd, reports, get_reports, get_data_report)
 from univunit import Table
-from reports import *
 
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
           'yeti', 'pulse', 'united', 'morph', 'journal', 'darkly',
@@ -17,19 +18,19 @@ class App(tk.Tk):
         self.name_report = tk.StringVar()
 
         # Menu strip
-        self.menu_frame = ttk.Frame(self, padding=5)
-        self.ds = ttk.DateEntry(
+        self.menu_frame = tk.Frame(self, padx=5, pady=5)
+        self.ds = DateEntry(
             master=self.menu_frame,
             width=15,
             relief="solid",
             dateformat='%d-%m-%Y'
         )
-        self.dp = ttk.DateEntry(self.menu_frame,
-                                width=15,
-                                relief="solid",
-                                dateformat='%d-%m-%Y')
+        self.dp = DateEntry(self.menu_frame,
+                            width=15,
+                            relief="solid",
+                            dateformat='%d-%m-%Y')
 
-        self.fte_frame = ttk.Frame(self.menu_frame)
+        self.fte_frame = tk.Frame(self.menu_frame)
 
         self.fte_frame.pack_forget()
         self.one_hour_fte = tk.IntVar()
@@ -37,25 +38,12 @@ class App(tk.Tk):
         self.fte = ttk.Entry(self.fte_frame, width=5, font=("Calibri", 12),
                              textvariable=self.one_hour_fte)
 
-        # self.export_excell_var = tk.IntVar()
-        # self.export=ttk.Checkbutton(self.menu_frame, text='Экспорт в Excel',
-        #                 variable=self.export_excell_var,
-        #                 onvalue=1,
-        #                 offvalue=0)
-
         self.style = ttk.Style(theme=_theme)
         self.title(title)
         self['background'] = '#EBEBEB'
         self.geometry(f"{size[0]}x{size[1]}")
-        # self.minsize(size[0], size[1])
-        # self.maxsize(size[0], size[1])
-        self.bold_font = font.Font(family='Helvetica', size=13, weight='bold')
-        # self.label_info = tk.Label(self, text="Информация", font=("Calibri", 12), bg="red")
-        # self.text = tk.Text(bg="darkgreen", fg="white", wrap=WORD, height=2)
-        # self.text.tag_config('title', justify=tk.LEFT)
-        # # Скрываю при открытии
-        # self.text.pack_forget()
 
+        self.bold_font = font.Font(family='Helvetica', size=13, weight='bold')
         self.create_widgets()
 
         self.table = Table(self)
@@ -140,9 +128,6 @@ class App(tk.Tk):
             self.table.populate_table(fr['data'])
             self.update_window_size()
         except Exception as e:
-            # self.label_info.config(text=f"Не смог открыть файл {file_name}{e}")
-            # self.text.pack(fill=tk.X)
-            # self.text.insert(5.0, f"Не смог открыть файл {file_name}{e}")
             messagebox.showinfo("Ошибка!", f"Не смог открыть файл {file_name}{e}")
 
     def update_window_size(self):
@@ -154,5 +139,6 @@ class App(tk.Tk):
         self.geometry(f'{total_width}x{height}')
 
 
+# if __name__ == '__main__':
 app = App("Анализ отчётов", (800, 500), 'yeti')
 app.mainloop()

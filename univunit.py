@@ -1,4 +1,5 @@
 import tkinter as tk
+
 import ttkbootstrap as ttk
 
 
@@ -69,28 +70,3 @@ class Table(tk.Frame):
         self.tree.tag_configure('evenrow', background='#DAEEF3')
         self.tree.tag_configure('oddrow', background='#B7DEE8')
 
-
-class Component(ttk.Frame):
-    def __init__(self, parent, label_text, text_value):
-        super().__init__(master=parent)
-
-        # grid
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure((0, 1), weight=1, uniform='a')
-        ttk.Label(self,
-                  text=label_text,
-                  wraplength=400,
-                  font=("Helvetica", 12),
-                  justify=tk.RIGHT
-                  ).grid(
-            padx=5, row=0, column=0, sticky=tk.W)
-        ttk.Label(self,
-                  text=text_value,
-                  background="pink",
-                  border=2,
-                  relief=tk.SUNKEN,
-                  anchor=tk.CENTER,
-                  font=("Helvetica", 14),
-                  width=10).grid(row=0, column=1)
-
-        self.pack(expand=1, fill=tk.BOTH)

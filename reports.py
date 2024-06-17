@@ -372,7 +372,7 @@ def sla_support(**params):
 def get_data_sla(**par):
     data_reg = par["data_reg"]
 
-    #tur4 Количество заявок, зарегистрированных в отчетном периоде
+    # tur4 Количество заявок, зарегистрированных в отчетном периоде
     sum1 = data_reg.groupby(['П2С'])["Зарегистрировано в период"].sum()
 
     sum2 = data_reg.groupby(['П2С'])['Выполнено в период'].sum()
