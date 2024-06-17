@@ -1,7 +1,7 @@
 import tkinter as tk
 from datetime import date
 import ttkbootstrap as ttk
-
+import pandas as pd
 
 class Table(tk.Frame):
     def __init__(self, parent=None, *args, **kwargs):
@@ -96,3 +96,18 @@ def get_first_day_of_quarter(current_date, date_format="%d-%m-%Y"):
 # # Пример использования функции:
 # current_date = date.today()
 # print(f"Первое число текущего квартала: {get_first_day_of_quarter(current_date)}")
+
+
+def convert_date(date_str, date_format="%Y-%m-%d"):
+    """
+    Преобразование даты в формат
+    :param date_str:
+    :param date_format:
+    :return:
+    """
+    try:
+        return pd.to_datetime(date_str, dayfirst=True).strftime(date_format)
+    except ValueError:
+        raise ValueError("Некорректный формат даты")
+
+

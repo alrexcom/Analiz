@@ -1,4 +1,4 @@
-import pandas as pd
+from univunit import (pd, convert_date)
 
 reports = [
     {
@@ -38,23 +38,6 @@ reports = [
 ]
 
 
-# def report1(df, fte):
-#     """
-#     Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период
-#
-#     """
-#     headers = ['Проект', 'План, FTE', 'Пользователь', 'Фактические трудозатраты (час.) (Сумма)',
-#                'Кол-во штатных единиц']
-#
-#     fr = df[headers].loc[df['Менеджер проекта'] == 'Тапехин Алексей Александрович']
-#     fr['Факт, FTE'] = round(fr['Фактические трудозатраты (час.) (Сумма)'] / fte, 2)
-#     fr['Часы план'] = fte * fr['План, FTE']
-#     fr['Остаток часов'] = fr['Часы план'] - fr['Фактические трудозатраты (час.) (Сумма)']
-#     fr = fr.groupby(['Проект', 'Пользователь', 'Кол-во штатных единиц', 'План, FTE', 'Часы план',
-#                      'Факт, FTE', 'Остаток часов'])['Фактические трудозатраты (час.) (Сумма)'].sum()
-#     return fr
-
-
 def report1(**param):
     """
     Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период
@@ -85,49 +68,20 @@ def report1(**param):
     return {'columns': columns, 'data': data}
 
 
-# def report2(df, date_begin, date_end, export_to_excell):
-#     """
-#     Контроль заполнения факта за период
-#     """
-#
-#     frm = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
-#              (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
-#         ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
-#     if not export_to_excell:
-#         result = frm.groupby(['Проект', 'ФИО']).agg({'Дата': 'max', 'Трудозатрады за день': 'sum'})
-#     else:
-#         date_range = pd.date_range(start=date_begin, end=date_end, freq='D')
-#         data_reg = frm[frm['Дата'].isin(date_range)]
-#         result = data_reg.sort_values(['Проект', 'ФИО', 'Дата'])
-#     return result
-
-
 def report2(**params):
     """
     Контроль заполнения факта за период
 
     """
-    # df, date_begin, date_end, export_to_excell
-    df = params['df']
-    # frm = df[(df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"') |
-    #          (df['Проект'] == 'С0134-КИС "Производственный учет и отчетность"')][
-    #     ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
 
+    df = params['df']
     frm = df[(df['ФИО'] == 'Тапехин Алексей Александрович') |
              (df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"')][
         ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
 
-    # if not bool(params['export_to_excell']):
-    #     result = frm.groupby(['Проект', 'ФИО']).agg({'Дата': 'max', 'Трудозатрады за день': 'sum'})
-    # else:
     date_range = pd.date_range(start=params['date_begin'], end=params['date_end'], freq='D')
     data_reg = frm[frm['Дата'].isin(date_range)]
     result = data_reg.sort_values(['ФИО', 'Проект', 'Дата'])
-
-    # headers = (list(result.index.names) + list(result.columns))
-    # columns = [{"name":  items} for items in headers]
-    # columns = [{"name": (lambda items: items if items is not None else 'index')(items)} for items in
-    #            headers]
 
     columns = []
     for items in result.columns:
@@ -139,38 +93,6 @@ def report2(**params):
         data.append(tuple(i))
 
     return {'columns': columns, 'data': data}
-    # print(result)
-    #
-    # data = list()
-    # data_ = list()
-    # res = list()
-    # dct = dict()
-    # # for id_ in fr.index:
-    # #     data.append(tuple(fr.loc[id_]))
-    # for id_ in result.index:
-    #     data.append(id_)
-    # for i in result.values:
-    #     data_.append(tuple(i))
-    #
-    # for t in result.items():
-    #     res.append(tuple(data[t] + data_[t]))
-    # # zz=list(zip(data,data_))
-    #
-    # for id_ in result.columns:
-    #     dct = [{id_: i} for i in result[id_]]
-    #
-    # print(dct)
-    # lst.append(i)
-
-    # res = {'columns': [{"name": i} for i in result.columns], 'data': data}
-    # for items in id_:
-    #     lst.append(items)
-    #     data.append(tuple(lst))
-    # data.append(tuple(result.loc[id_]))
-
-    #
-
-    # dic = dict(zip(result.columns, res))
 
 
 def calc(sum1, sum6, sum7, sum8, prefix):
@@ -184,80 +106,6 @@ def calc(sum1, sum6, sum7, sum8, prefix):
 
     slap = round((1 - (s6 + s7) / (s8 + s1)) * 100, 2)
     return slap
-
-
-# def report3(df, date_end, date_begin):
-#     """
-#     Сводный список запросов  для SLA
-#     """
-#     status = reports[2]['status']
-#     try:
-#         mdf = df
-#         mdf = mdf.loc[mdf["Услуга"] == "КИС \"Производственный учет и отчетность\""]
-#         # mdf = mdf.loc[mdf["Статус"].isin(status)]
-#         mdf = mdf.loc[mdf["Статус"] != 'Отменено']
-#         mdf["П2С"] = "П"
-#         mdf.loc[mdf["Тип запроса"] == 'Нестандартное', "П2С"] = "СДОП"
-#         mdf.loc[mdf["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
-#
-#         # date_range = pd.date_range(start=date_begin, end=date_end, freq='D')
-#
-#         # data_reg = mdf[mdf['Дата регистрации'].isin(date_range)]
-#         data_reg = mdf[(mdf['Дата регистрации'] >= date_begin and mdf['Дата регистрации'] <= date_end)]
-#
-#         sum1 = data_reg.groupby(['П2С'])["Зарегистрировано в период"].sum()
-#         sum2 = mdf.groupby(['П2С'])['Выполнено в период'].sum()
-#         # sum3 = df.loc[df['Тип запроса']=='Инцидент'].groupby(['П2С']).count()
-#         inzindent = mdf[['П2С', 'Дата регистрации', 'Статус',
-#                          'Просрочено в период', 'Дата закрытия']].loc[mdf['Тип запроса'] == 'Инцидент']
-#
-#         data_inzindent = inzindent[(inzindent['Дата регистрации'] <= date_end)
-#                                    & (inzindent['Дата регистрации'] >= date_begin)]
-#
-#         sum3 = data_inzindent[['Дата регистрации', 'П2С']].groupby('П2С').count()
-#
-#         data_inzindent = inzindent[(inzindent['Статус'] == 'Закрыто') & (inzindent['Просрочено в период'] > 0)
-#                                    & (inzindent['Дата закрытия'] <= date_end)
-#                                    & (inzindent['Дата закрытия'] >= date_begin)]
-#
-#         sum4 = data_inzindent[['Просрочено в период', 'П2С']].groupby(['П2С']).count()
-#
-#         sum6 = data_reg[['Просрочено в период', 'П2С']].groupby(['П2С']).sum()
-#
-#         sum7 = mdf[['Открыто на конец периода с просрочкой', 'П2С']].groupby(['П2С']).sum()
-#
-#         sum8 = mdf.groupby(['П2С'])["Открыто на начало периода"].sum()
-#
-#         slap = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'П')
-#         slac = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'С')
-#
-#         ss = (f"SLA для поддержки = {slap} "
-#               f"SLA для сопровождения = {slac} "
-#               f"\n----------------------------------\n"
-#               f"1 Общее количество зарегистрированных заявок : {sum1}"
-#               f"\n-Итого:{sum1.sum()}\n\n"
-#               f"2 Общее количество выполненных заявок : {sum2}"
-#               f"\n-Итого:{sum2.sum()}\n\n"
-#               f"3 Общее количество зарегистрированных заявок за "
-#               f" отчетный период, имеющих категорию «Инцидент»: {sum3}"
-#               f"\n-Итого:{sum3.sum()}\n\n"
-#               f"4 Количество заявок за период с превышением срока выполнения, имеющих категорию «Инцидент» : {sum4}"
-#               f"\n-Итого:{sum4.sum()}\n\n"
-#               f"5 Количество заявок за период с превышением времени реакции по поддержке: 0 \n\n"
-#               f"6 (TUR1) Количество закрытых заявок на поддержку с нарушением сроков заявок:{sum6}"
-#               f"\n-Итого:{sum6.sum()}\n\n"
-#               f"7 (TUR2) Количество незакрытых заявок, с нарушением срока: {sum7}"
-#               f"\n-Итого:{sum7.sum()}\n\n"
-#               f"8 (TUR3) Количество перешедших с прошлого периода заявок на поддержку: {sum8}"
-#               f"\n-Итого:{sum8.sum()}\n\n"
-#               f"9 (TUR4) Количество зарегистрированных заявок по поддержке: {sum1}"
-#               f"\n-Итого:{sum1.sum()}"
-#
-#               )
-#         return ss
-#
-#     except Exception as e:
-#         return f"Ошибка вычисления {e}"
 
 
 def report_sla(**params):
@@ -410,9 +258,6 @@ def sla_sopr(**params):
 
     slap = calc(sum1, sum6[tur1], sum7[tur2], sum8[tur3], 'П')
     slac = calc(sum1, sum6[tur1], sum7[tur2], sum8[tur3], 'С')
-    # slap = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'П')
-    #  slac = calc(sum1, sum6['Просрочено в период'], sum7['Открыто на конец периода с просрочкой'], sum8, 'С')
-    # columnsname = ["Наименование", "Значение"]
 
     ss = {
         "9 Уровень исполнения SLA общий": round(100 * (sum2.sum() - sum6[tur1].sum()) / sum2.sum(), 2),
@@ -449,36 +294,35 @@ def sla_sopr(**params):
     return ss
 
 
-# def get_data(reportnumber, date_end, date_begin, df, fte, export_excell):
-#     frm = ''
-#     if reportnumber == 1:
-#         frm = report1(df, fte)
-#     elif reportnumber == 3:
-#         frm = report3(df, date_end=date_end, date_begin=date_begin)
-#     elif reportnumber == 2:
-#         frm = report2(df=df, date_begin=date_begin, date_end=date_end, export_to_excell=export_excell)
-#     return frm
-
-
 def get_data_report(**params):
     reportnumber = params['reportnumber']
 
-    frm = ''
-    if reportnumber == 1:
-        frm = report1(**params)
-    elif reportnumber in (3, 4):
-        frm = report_sla(**params)
-    elif reportnumber == 2:
-        frm = report2(**params)
-    return frm
+    params['date_begin'] = convert_date(params['date_begin'])
+    params['date_end'] = convert_date(params['date_end'])
+
+    report_functions = {
+        1: report1,
+        2: report2,
+        3: report_sla,
+        4: report_sla,
+    }
+
+    frm = report_functions.get(reportnumber)
+    if frm is None:
+        raise ValueError("Некорректный номер отчета")
+
+    return frm(**params)
 
 
-# def get_report(num_report, filename):
-#     for items in reports:
-#         if num_report == items['reportnumber']:
-#             result = pd.read_excel(filename, header=items['header_row'], parse_dates=items['data_columns'],
-#                                    date_format='%d.%m.%Y')
-#             return result
+
+    # frm = ''
+    # if reportnumber == 1:
+    #     frm = report1(**params)
+    # elif reportnumber in (3, 4):
+    #     frm = report_sla(**params)
+    # elif reportnumber == 2:
+    #     frm = report2(**params)
+    # return frm
 
 
 def get_reports(name_report, filename):
@@ -488,3 +332,7 @@ def get_reports(name_report, filename):
                       pd.read_excel(filename, header=items['header_row'], parse_dates=items['data_columns'],
                                     date_format='%d.%m.%Y'))
             return result
+
+
+
+
