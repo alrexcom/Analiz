@@ -1,11 +1,13 @@
+import datetime
 import tkinter as tk
 from tkinter import (filedialog, font, messagebox)
 
+import dateutil.utils
 import ttkbootstrap as ttk
 from ttkbootstrap import DateEntry
 
 from reports import (pd, reports, get_reports, get_data_report)
-from univunit import Table
+from univunit import Table, get_first_day_of_quarter
 
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
           'yeti', 'pulse', 'united', 'morph', 'journal', 'darkly',
@@ -66,7 +68,7 @@ class App(tk.Tk):
 
         self.ds.pack(side=tk.LEFT, padx=10)
         self.ds.entry.delete(0, tk.END)
-        self.ds.entry.insert(0, '01-01-2024')
+        self.ds.entry.insert(0, get_first_day_of_quarter(current_date=datetime.date.today()))
 
         self.dp.pack(side=tk.LEFT, padx=10)
 
@@ -78,10 +80,6 @@ class App(tk.Tk):
         self.fte.insert(0, '164')
         self.fte.pack(side=tk.LEFT, padx=10)
 
-        # ttk.Checkbutton(self.menu_frame, text='Экспорт в Excel',
-        #                 variable=self.export_excell_var,
-        #                 onvalue=1,
-        #                 offvalue=0).pack(side=tk.LEFT, padx=5)
 
         btn_go = ttk.Button(self.menu_frame, text='Открыть',
                             command=self.btn_go_click,
@@ -90,7 +88,6 @@ class App(tk.Tk):
 
         self.menu_frame.pack(fill=tk.X)
 
-        # self.text.pack(fill=tk.X)
 
     def cmb_function(self, event):
         num_report = event.widget.current() + 1
