@@ -5,7 +5,7 @@ from tkinter import (filedialog, font, messagebox)
 import ttkbootstrap as ttk
 from ttkbootstrap import DateEntry
 
-from reports import (reports, get_reports, get_data_report)
+from reports import (get_data_report, reports)
 from univunit import Table, get_first_day_of_quarter
 
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
@@ -104,15 +104,13 @@ class App(tk.Tk):
         file_name = ''
         try:
             file_name = filedialog.askopenfilename()
-            report_data = get_reports(name_report=self.name_report.get(), filename=file_name)
 
-            param = {'df': report_data[1],
+            param = {'filename': file_name,
+                     'name_report': self.name_report.get(),
                      'fte': self.one_hour_fte.get(),
-                     'reportnumber': report_data[0],
                      'date_end': self.dp.entry.get(),
-                     'date_begin': self.ds.entry.get()
+                     'date_begin': self.ds.entry.get(),
                      }
-
             fr = get_data_report(**param)
 
             self.table.configure_columns(fr['columns'])

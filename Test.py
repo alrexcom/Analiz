@@ -1,4 +1,5 @@
 import unittest
+from reports import *
 
 
 # from reports import calculate_slap
@@ -25,6 +26,8 @@ class MyTestCase(unittest.TestCase):
         #
         # # Тестирование функции с плавающей точкой
         self.assertEqual(calculate_slap(10.5, 3.2, 2.1, 5.6), 16.1)
+
+
 
 
 if __name__ == '__main__':

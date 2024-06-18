@@ -49,8 +49,10 @@ def report1(**param):
     headers = ['Проект', 'План, FTE', 'Пользователь', 'Фактические трудозатраты (час.) (Сумма)',
                'Кол-во штатных единиц']
     user = 'Тапехин Алексей Александрович'
-    # fr = df[headers][[df['Пользователь'] == user | df['Менеджер проекта'] == user]]
-    fr = df[headers].loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user)]
+
+    # fr = df[headers].loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user)]
+
+    fr = df.loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user), headers]
 
     fact_fte = round((fr[fact_sum] / fte), 2)
     fr['Факт, FTE'] = fact_fte
@@ -60,12 +62,12 @@ def report1(**param):
     fr['Остаток часов'] = hours_remain
 
     fr = fr[fr['Факт, FTE'] > 0]
-    data = []
-    for id_ in fr.index:
-        data.append(tuple(fr.loc[id_]))
-    columns = [{"name": items} for items in fr.columns]
 
-    return {'columns': columns, 'data': data}
+    # Преобразование DataFrame в записи NumPy
+    data = fr.to_records(index=False)
+    columns = [{"name": col} for col in fr.columns]
+
+    return {'columns': columns, 'data': data.tolist()}
 
 
 def report2(**params):
@@ -75,19 +77,21 @@ def report2(**params):
     """
 
     df = params['df']
-    frm = df[(df['ФИО'] == 'Тапехин Алексей Александрович') |
-             (df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"')][
-        ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']]
+
+    # Оптимизированная фильтрация с использованием .loc[]
+    frm = df.loc[
+        (df['ФИО'] == 'Тапехин Алексей Александрович') |
+        (df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"'),
+        ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']
+    ]
 
     date_range = pd.date_range(start=params['date_begin'], end=params['date_end'], freq='D')
     data_reg = frm[frm['Дата'].isin(date_range)]
     result = data_reg.sort_values(['ФИО', 'Проект', 'Дата'])
 
-    columns = []
-    for items in result.columns:
-        if items is not None:
-            columns.append({"name": items})
-
+    # Создание списка столбцов
+    columns = [{"name": col} for col in result.columns]
+    # Преобразование в список кортежей
     data = []
     for i in result.values:
         data.append(tuple(i))
@@ -110,56 +114,52 @@ def calc(sum1, sum6, sum7, sum8, prefix):
 
 def report_sla(**params):
     """
-    Сводный список запросов  для SLA
+    Сводный список запросов для SLA
     """
-
-    status = reports[2]['status']
-    reportnumber = int(params["reportnumber"]) - 1
-    support = bool(reports[reportnumber]['support'])
     try:
         mdf = params["df"]
-        mdf = mdf.loc[mdf["Услуга"] == "КИС \"Производственный учет и отчетность\""]
-        mdf = mdf.loc[mdf["Статус"].isin(status)]
-        mdf["П2С"] = "П"
-        mdf.loc[mdf["Тип запроса"] == 'Нестандартное', "П2С"] = "СДОП"
-        mdf.loc[mdf["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
-        data_reg = mdf[
-            (mdf['Дата регистрации'] >= params["date_begin"]) & (mdf['Дата регистрации'] <= params["date_end"])]
+        # status переменная нужна в запросе
+        status = params['status']
+        # Объединённая фильтрация
+        filtered_mdf = mdf.query("Услуга == 'КИС \"Производственный учет и отчетность\"' and Статус in @status")
 
-        data_prosr = mdf[(mdf['Статус'] != 'Закрыто') & (mdf['Просрочено в период'] > 0)
-                         & (mdf['Дата закрытия'] <= params["date_end"])
-                         & (mdf['Дата закрытия'] >= params["date_begin"])]
-        columns = [{
-            "name": "Наименование",
-            "width": 600,
-            "anchor": 'w'
-        },
-            {
-                "name": "Значение",
-                "width": 100,
-                "anchor": 'center'
-            }]
+        # Классификация запросов
+        filtered_mdf["П2С"] = "П"
+        filtered_mdf.loc[filtered_mdf["Тип запроса"] == 'Нестандартное', "П2С"] = "СДОП"
+        filtered_mdf.loc[filtered_mdf["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
 
-        errsla = mdf[["Номер запроса", "Исполнитель", "Комментарий к нарушению SLA"]][
-            mdf["Комментарий к нарушению SLA"].notna()]
-        mu = errsla.to_dict('index')
+        # Фильтрация по датам
+        date_filter = ((filtered_mdf['Дата регистрации'] >= params["date_begin"]) &
+                       (filtered_mdf['Дата регистрации'] <= params["date_end"]))
+        data_reg = filtered_mdf[date_filter]
 
-        data = []
-        for item in mu.items():
-            key, val = item
-            data.append((
-                f"ERR SLA: запрос {val['Номер запроса']} / {val["Исполнитель"]} :{val['Комментарий к нарушению SLA']}",
-                "1"))
+        # Фильтрация просроченных запросов
+        overdue_filter = ((filtered_mdf['Статус'] != 'Закрыто') & (filtered_mdf['Просрочено в период'] > 0)
+                          & (filtered_mdf['Дата закрытия'] <= params["date_end"]) &
+                          (filtered_mdf['Дата закрытия'] >= params["date_begin"]))
+        data_prosr = filtered_mdf[overdue_filter]
 
-        if support:
-            ss = sla_support(mdf=mdf, data_reg=data_reg, data_prosr=data_prosr, columns=columns,
+        # Столбцы для вывода
+        columns = [{"name": "Наименование", "width": 600, "anchor": 'w'},
+                   {"name": "Значение", "width": 100, "anchor": 'center'}]
+
+        # Обработка нарушений SLA  убиваем Nan - пустые строки
+        errsla = filtered_mdf[["Номер запроса", "Исполнитель",
+                               "Комментарий к нарушению SLA"]].dropna(subset=["Комментарий к нарушению SLA"])
+
+        data = errsla.apply(lambda x: (
+            f"ERR SLA: запрос {x['Номер запроса']} / {x['Исполнитель']} :{x['Комментарий к нарушению SLA']}", 1),
+                            axis=1).tolist()
+
+        # Добавление поддержки SLA
+        if params['support']:
+            ss = sla_support(mdf=filtered_mdf, data_reg=data_reg, data_prosr=data_prosr, columns=columns,
                              date_end=params["date_end"], date_begin=params["date_begin"])
         else:
-            ss = sla_sopr(mdf=mdf, data_reg=data_reg, data_prosr=data_prosr, columns=columns,
+            ss = sla_sopr(mdf=filtered_mdf, data_reg=data_reg, data_prosr=data_prosr, columns=columns,
                           date_end=params["date_end"], date_begin=params["date_begin"])
 
-        for item in ss.items():
-            key, val = item
+        for key, val in ss.items():
             data.append((key, val))
 
         return {"columns": columns, "data": data}
@@ -295,10 +295,16 @@ def sla_sopr(**params):
 
 
 def get_data_report(**params):
-    reportnumber = params['reportnumber']
+    report_data = get_reports(**params)
+    reportnumber = report_data[0]
 
+    params['df'] = report_data[1]
     params['date_begin'] = convert_date(params['date_begin'])
     params['date_end'] = convert_date(params['date_end'])
+
+    # Если ключа статус нет
+    params['status'] = reports[reportnumber - 1].get('status', 'статус не указан')
+    params['support'] = bool(reports[reportnumber - 1].get('support', False))
 
     report_functions = {
         1: report1,
@@ -314,25 +320,10 @@ def get_data_report(**params):
     return frm(**params)
 
 
-
-    # frm = ''
-    # if reportnumber == 1:
-    #     frm = report1(**params)
-    # elif reportnumber in (3, 4):
-    #     frm = report_sla(**params)
-    # elif reportnumber == 2:
-    #     frm = report2(**params)
-    # return frm
-
-
-def get_reports(name_report, filename):
+def get_reports(**params):
     for items in reports:
-        if name_report == items['name']:
+        if params['name_report'] == items['name']:
             result = (items['reportnumber'],
-                      pd.read_excel(filename, header=items['header_row'], parse_dates=items['data_columns'],
+                      pd.read_excel(params['filename'], header=items['header_row'], parse_dates=items['data_columns'],
                                     date_format='%d.%m.%Y'))
             return result
-
-
-
-
