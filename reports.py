@@ -327,3 +327,7 @@ def get_reports(**params):
                       pd.read_excel(params['filename'], header=items['header_row'], parse_dates=items['data_columns'],
                                     date_format='%d.%m.%Y'))
             return result
+
+
+def names_reports():
+    return [items["name"] for items in reports]

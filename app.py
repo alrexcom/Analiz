@@ -5,7 +5,7 @@ from tkinter import (filedialog, font, messagebox)
 import ttkbootstrap as ttk
 from ttkbootstrap import DateEntry
 
-from reports import (get_data_report, reports)
+from reports import (get_data_report, names_reports)
 from univunit import Table, get_first_day_of_quarter
 
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
@@ -60,7 +60,7 @@ class App(tk.Tk):
 
         cmb_frame = ttk.Frame(self, padding=1)
 
-        cmb = ttk.Combobox(cmb_frame, values=[items["name"] for items in reports],
+        cmb = ttk.Combobox(cmb_frame, values=names_reports(),
                            state="readonly",
                            height=4,
                            font=("Calibri", 12),
