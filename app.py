@@ -13,25 +13,31 @@ themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
           'superhero', 'solar', 'cyborg', 'vapor', 'simplex', 'cerculean']
 
 
+def prompt_file_selection():
+    try:
+        return filedialog.askopenfilename()
+    except Exception as e:
+        messagebox.showinfo("Ошибка!", f"Не удалось выбрать файл: {e}")
+        return None
+
+
 class App(tk.Tk):
     def __init__(self, title, size, _theme):
         super().__init__()
-
         self.style = ttk.Style(theme=_theme)
-        self.title(title)
         self['background'] = '#EBEBEB'
+        self.bold_font = font.Font(family='Helvetica', size=13, weight='bold')
+        self.title(title)
+
         self.geometry(f"{size[0]}x{size[1]}")
 
-        self.bold_font = font.Font(family='Helvetica', size=13, weight='bold')
+        self.fte_frame = None
+        self.ds = None
+        self.dp = None
+        self.fte = None
 
         self.name_report = tk.StringVar()
         self.one_hour_fte = tk.IntVar()
-
-        self.menu_frame = None
-        self.ds = None
-        self.dp = None
-        self.fte_frame = None
-        self.fte = None
 
         self.create_widgets()
 
@@ -40,19 +46,19 @@ class App(tk.Tk):
 
     def create_widgets(self):
         # Menu strip
-        self.menu_frame = tk.Frame(self, padx=5, pady=5)
+        menu_frame = tk.Frame(self, padx=5, pady=5)
         self.ds = DateEntry(
-            master=self.menu_frame,
+            master=menu_frame,
             width=15,
             relief="solid",
             dateformat='%d-%m-%Y'
         )
-        self.dp = DateEntry(self.menu_frame,
+        self.dp = DateEntry(menu_frame,
                             width=15,
                             relief="solid",
                             dateformat='%d-%m-%Y')
 
-        self.fte_frame = tk.Frame(self.menu_frame)
+        self.fte_frame = tk.Frame(menu_frame)
         self.fte_frame.pack_forget()
 
         self.fte = ttk.Entry(self.fte_frame, width=5, font=("Calibri", 12),
@@ -86,38 +92,49 @@ class App(tk.Tk):
         self.fte.insert(0, '164')
         self.fte.pack(side=tk.LEFT, padx=10)
 
-        btn_go = ttk.Button(self.menu_frame, text='Открыть',
+        btn_go = ttk.Button(menu_frame, text='Открыть',
                             command=self.btn_go_click,
                             width=10)
         btn_go.pack(side=tk.LEFT)
 
-        self.menu_frame.pack(fill=tk.X)
+        menu_frame.pack(fill=tk.X)
 
     def cmb_function(self, event):
         num_report = event.widget.current() + 1
         if num_report == 1:
+            self.toggle_fte_frame(True)
+        else:
+            self.toggle_fte_frame(False)
+
+    def toggle_fte_frame(self, show):
+        if show:
             self.fte_frame.pack(side=tk.LEFT, padx=5)
         else:
             self.fte_frame.pack_forget()
 
     def btn_go_click(self):
-        file_name = ''
+        file_name = prompt_file_selection()
+        if file_name:
+            self.process_file(file_name)
+
+    def process_file(self, file_name):
         try:
-            file_name = filedialog.askopenfilename()
-
-            param = {'filename': file_name,
-                     'name_report': self.name_report.get(),
-                     'fte': self.one_hour_fte.get(),
-                     'date_end': self.dp.entry.get(),
-                     'date_begin': self.ds.entry.get(),
-                     }
+            param = self.get_params(file_name)
             fr = get_data_report(**param)
-
             self.table.configure_columns(fr['columns'])
             self.table.populate_table(fr['data'])
             self.update_window_size()
         except Exception as e:
-            messagebox.showinfo("Ошибка!", f"Не смог открыть файл {file_name}{e}")
+            messagebox.showinfo("Ошибка!", f"Не смог обработать файл {file_name}: {e}")
+
+    def get_params(self, file_name):
+        return {
+            'filename': file_name,
+            'name_report': self.name_report.get(),
+            'fte': self.one_hour_fte.get(),
+            'date_end': self.dp.entry.get(),
+            'date_begin': self.ds.entry.get(),
+        }
 
     def update_window_size(self):
         # Рассчитываем общую ширину столбцов

@@ -118,6 +118,7 @@ def report_sla(**params):
     """
     try:
         mdf = params["df"]
+
         # status переменная нужна в запросе
         status = params['status']
         # Объединённая фильтрация
