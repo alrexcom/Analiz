@@ -40,7 +40,7 @@ class App(tk.Tk):
         self.one_hour_fte = tk.IntVar()
 
         self.create_widgets()
-
+        self.create_menu()
         self.table = Table(self)
         self.table.pack(expand=True, fill='both')
 
@@ -143,6 +143,33 @@ class App(tk.Tk):
         height = (row_count * 25) + 180
         # Обновляем размер окна
         self.geometry(f'{total_width}x{height}')
+
+    def create_menu(self):
+        # Создание панели меню
+        menubar = tk.Menu(self)
+
+        # Создание выпадающего меню "Файл"
+        file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu.add_command(label="Ввести рабочие дни", command=append_job_days)  # Добавление команды "Открыть"
+
+        file_menu.add_separator()  # Добавление разделителя
+        file_menu.add_command(label="Выход", command=self.quit)  # Добавление команды "Выход"
+
+        # Добавление выпадающего меню "Файл" в панель меню
+        menubar.add_cascade(label="Файл", menu=file_menu)
+
+        # Повторите эти шаги, чтобы добавить другие выпадающие меню, если это необходимо
+
+        # Отображение панели меню
+        self.config(menu=menubar)
+
+
+def append_job_days():
+    # Функция добавления рабочих дней для получения FTE
+    new_window = tk.Toplevel()
+    new_window.title("Добавление рабочих дней для получения FTE")
+    tk.Label(new_window, text="Это новая форма!").pack()
+    new_window.geometry("500x200")
 
 
 if __name__ == '__main__':
