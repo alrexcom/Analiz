@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import tkinter as tk
 from tkinter import (filedialog, font, messagebox)
 
@@ -7,10 +7,13 @@ from ttkbootstrap import DateEntry
 
 from reports import (get_data_report, names_reports)
 from univunit import Table, get_first_day_of_quarter, first_date_of_month
+import bd_unit
 
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
           'yeti', 'pulse', 'united', 'morph', 'journal', 'darkly',
           'superhero', 'solar', 'cyborg', 'vapor', 'simplex', 'cerculean']
+
+DB_MANAGER = bd_unit.DatabaseManager('test.db')
 
 
 def prompt_file_selection():
@@ -19,6 +22,11 @@ def prompt_file_selection():
     except Exception as e:
         messagebox.showinfo("Ошибка!", f"Не удалось выбрать файл: {e}")
         return None
+
+
+def on_date_change(event):
+    """событие на изменение dp"""
+    print("fsdfsdf")
 
 
 class App(tk.Tk):
@@ -53,16 +61,17 @@ class App(tk.Tk):
             relief="solid",
             dateformat='%d-%m-%Y'
         )
-        self.dp = DateEntry(menu_frame,
-                            width=15,
-                            relief="solid",
-                            dateformat='%d-%m-%Y')
 
         self.fte_frame = tk.Frame(menu_frame)
         self.fte_frame.pack_forget()
 
         self.fte = ttk.Entry(self.fte_frame, width=5, font=("Calibri", 12),
                              textvariable=self.one_hour_fte)
+
+        self.dp = DateEntry(menu_frame,
+                            width=15,
+                            relief="solid",
+                            dateformat='%d-%m-%Y')
 
         cmb_frame = ttk.Frame(self, padding=1)
 
@@ -80,16 +89,16 @@ class App(tk.Tk):
 
         self.ds.pack(side=tk.LEFT, padx=10)
         self.ds.entry.delete(0, tk.END)
-        self.ds.entry.insert(0, get_first_day_of_quarter(current_date=datetime.date.today()))
+        self.ds.entry.insert(0, get_first_day_of_quarter(current_date=datetime.now()))
 
+        self.dp.bind('<<DateEntrySelected>>', on_date_change)
         self.dp.pack(side=tk.LEFT, padx=10)
 
         ttk.Label(self.fte_frame, text="FTE:", width=5, anchor=tk.CENTER,
                   border=2, font=("Calibri", 12, 'bold'),
                   background='#B7DEE8', foreground='white').pack(side=tk.LEFT)
 
-        self.fte.delete(0, tk.END)
-        self.fte.insert(0, '164')
+        self.set_fte_from_db()
         self.fte.pack(side=tk.LEFT, padx=10)
 
         btn_go = ttk.Button(menu_frame, text='Открыть',
@@ -103,6 +112,7 @@ class App(tk.Tk):
         num_report = event.widget.current() + 1
         if num_report == 1:
             self.toggle_fte_frame(True)
+            self.set_fte_from_db()
         else:
             self.toggle_fte_frame(False)
 
@@ -127,6 +137,17 @@ class App(tk.Tk):
         except Exception as e:
             messagebox.showinfo("Ошибка!", f"Не смог обработать файл {file_name}: {e}")
 
+    # def on_date_change(self, event):
+    #     """событие на изменение dp"""
+    #     self.set_fte_from_db()
+
+    def set_fte_from_db(self):
+        self.fte.config(state=tk.NORMAL)
+        self.fte.delete(0, tk.END)
+        data_po = self.dp.entry.get()
+        self.fte.insert(0, DB_MANAGER.read_one_rec(data_po))
+        self.fte.config(state='readonly')
+
     def get_params(self, file_name):
         return {
             'filename': file_name,
@@ -145,12 +166,15 @@ class App(tk.Tk):
         self.geometry(f'{total_width}x{height}')
 
     def create_menu(self):
-        # Создание панели меню
+        """
+        Создание панели меню
+        :return:
+        """
         menubar = tk.Menu(self)
 
         # Создание выпадающего меню "Файл"
         file_menu = tk.Menu(menubar, tearoff=0)
-        file_menu.add_command(label="Ввести рабочие дни", command=append_job_days)  # Добавление команды "Открыть"
+        file_menu.add_command(label="Ввести рабочие дни", command=self.create_new_window)
 
         file_menu.add_separator()  # Добавление разделителя
         file_menu.add_command(label="Выход", command=self.quit)  # Добавление команды "Выход"
@@ -163,39 +187,93 @@ class App(tk.Tk):
         # Отображение панели меню
         self.config(menu=menubar)
 
-
-def append_job_days():
-    # Функция добавления рабочих дней для получения FTE
-    create_new_window()
+    def create_new_window(self):
+        JobDaysApp(self)
 
 
-def create_new_window():
-    new_window = tk.Toplevel()
-    new_window.geometry("500x200")
-    new_window.title("Добавление рабочих дней для получения FTE")
-    days_var = tk.IntVar()
-    frame_item = tk.Frame(new_window)
-    tk.Label(frame_item, text='Число рабочих дней', bg="#333333", fg="white", font=("Arial", 16)).grid(row=1,
-                                                                                                       sticky="e")
-    tk.Entry(frame_item, textvariable=days_var).grid(row=1, column=1, pady=20, padx=10, sticky="ew")
+class JobDaysApp(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-    tk.Label(frame_item, text='Месяц из даты', bg="#333333", fg="white", font=("Arial", 16)).grid(row=2, sticky="e")
+        self.geometry("500x400")
+        self.title("Добавление рабочих дней для получения FTE")
+        self.days_var = tk.IntVar()
 
-    month_year = DateEntry(master=frame_item, width=15, relief="solid", dateformat='%d-%m-%Y')
-    month_year.grid(row=2, column=1, pady=10, sticky="ew",padx=10)
-    month_year.entry.delete(0, tk.END)
-    month_year.entry.insert(0, get_first_day_of_quarter(current_date=datetime.date.today()))
+        self.result_label = None
 
-    date_in = first_date_of_month(month_year.entry.get())
+        self.create_widgets()
 
-    tk.Button(frame_item, text='Добавить запись', command=lambda: save_days(job_days=days_var.get(), date_in=date_in),
-              bg="#FF3399", fg="white", font=("Arial", 14)).grid(row=3, columnspan=2, pady=10)
-    frame_item.pack()
+        self.table_fte = Table(self)
+        self.table_fte.pack(expand=True, fill='both')
+        self.read_all_data()
 
+    def create_widgets(self):
+        frame_item = tk.Frame(self)
+        tk.Label(frame_item, text='Число рабочих дней', bg="#333333", fg="white", font=("Arial", 16)).grid(row=1,
+                                                                                                           sticky="e")
+        tk.Entry(frame_item, textvariable=self.days_var).grid(row=1, column=1, pady=20, padx=10, sticky="ew")
 
-def save_days(**params):
-    # print(f"{params['date_in']}, число:{params['job_days']}")
-    messagebox.showinfo("Сообщение", f"{params['date_in']}, число:{params['job_days']}")
+        tk.Label(frame_item, text='Месяц из даты', bg="#333333", fg="white", font=("Arial", 16)).grid(row=2, sticky="e")
+
+        self.month_year = DateEntry(master=frame_item, width=15, relief="solid", dateformat='%d-%m-%Y')
+        self.month_year.grid(row=2, column=1, pady=10, sticky="ew", padx=10)
+
+        # Место для отображения результата входа
+        self.result_label = tk.Label(frame_item, bg="#333333", fg="blue", font=("Arial", 10))
+        self.result_label.grid(row=3, columnspan=2, sticky="ew")
+
+        frame_buttons = tk.Frame(frame_item)
+
+        tk.Button(frame_buttons, text='Добавить запись',
+                  command=self.save_days,
+                  bg="#FF3399", fg="white", font=("Arial", 12)).pack(side=tk.LEFT, padx=10)
+        tk.Button(frame_buttons, text='Удалить запись',
+                  command=self.delete_rec,
+                  bg="#FF3399", fg="white", font=("Arial", 12)).pack(side=tk.LEFT)
+        frame_buttons.grid(row=4, columnspan=2, pady=10)
+        frame_item.pack()
+
+    def add_month_name_first(self, tuples_list):
+        """
+            Добавление в кортеж имени месяца
+        """
+        updated_list = []
+        for item in tuples_list:
+            month_number, date_str, work_days = item
+            month_name = datetime.strptime(date_str, '%Y-%m-%d').strftime('%B')
+            updated_list.append((month_name, month_number, date_str, work_days))
+        return updated_list
+
+    def read_all_data(self):
+        self.table_fte.configure_columns([{'name': 'Месяц'}, {'name': 'Дней'}, {'name': 'Период'}, {'name': 'FTE'}])
+
+        data = self.add_month_name_first(DB_MANAGER.read_all_table())
+        # data.append(('Month':data.strftime('%B')))
+
+        self.table_fte.populate_table(data)
+
+    def delete_rec(self):
+        try:
+            date_in = first_date_of_month(self.month_year.entry.get())
+            DB_MANAGER.delete_record(date_in)
+            self.result_label.config(text=f"За период {date_in} удалена запись")
+            self.read_all_data()
+        except Exception as e:
+            messagebox.showinfo('Ошибка с бд', f"Данные не сохранены: {e}")
+
+    def save_days(self):
+        try:
+            days = self.days_var.get()
+            if days == 0:
+                raise ValueError("Количество дней не может быть нулевым.")
+            date_in = first_date_of_month(self.month_year.entry.get())
+            DB_MANAGER.insert_data([(self.days_var.get(), date_in)])
+            self.result_label.config(text=f"{date_in}, число:{self.days_var.get()} добавлены")
+            self.read_all_data()
+        except ValueError as ve:
+            messagebox.showinfo('Ошибка ввода', str(ve))
+        except Exception as e:
+            messagebox.showinfo('Ошибка с бд', f"Данные не сохранены: {e}")
 
 
 if __name__ == '__main__':
