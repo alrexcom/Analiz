@@ -1,7 +1,8 @@
 import tkinter as tk
-from datetime import date
+from datetime import date, datetime
 import ttkbootstrap as ttk
 import pandas as pd
+
 
 class Table(tk.Frame):
     def __init__(self, parent=None, *args, **kwargs):
@@ -93,6 +94,7 @@ def get_first_day_of_quarter(current_date, date_format="%d-%m-%Y"):
 
     return quarter_start.strftime(date_format)
 
+
 # # Пример использования функции:
 # current_date = date.today()
 # print(f"Первое число текущего квартала: {get_first_day_of_quarter(current_date)}")
@@ -103,7 +105,7 @@ def convert_date(date_str, date_format="%Y-%m-%d"):
     Преобразование даты в формат
     :param date_str:
     :param date_format:
-    :return:
+    :return: string
     """
     try:
         return pd.to_datetime(date_str, dayfirst=True).strftime(date_format)
@@ -111,3 +113,25 @@ def convert_date(date_str, date_format="%Y-%m-%d"):
         raise ValueError("Некорректный формат даты")
 
 
+def first_date_of_month(date_in=datetime.now(), date_format="%Y-%m-%d"):
+    """
+    Первое число принимаемой даты
+    :param date_in:
+    :param date_format:
+    :return: string
+    """
+    try:
+        return pd.to_datetime(date_in).replace(day=1).strftime(date_format)
+    except ValueError:
+        raise ValueError("Некорректный формат даты")
+
+
+def is_integer(s):
+    """
+    Проверка что в строке целое число
+    :param s:
+    :return: bool
+    """
+    if s[0] in ('-', '+'):
+        return s[1:].isdigit()
+    return s.isdigit()

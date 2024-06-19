@@ -6,7 +6,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap import DateEntry
 
 from reports import (get_data_report, names_reports)
-from univunit import Table, get_first_day_of_quarter
+from univunit import Table, get_first_day_of_quarter, first_date_of_month
 
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
           'yeti', 'pulse', 'united', 'morph', 'journal', 'darkly',
@@ -166,10 +166,36 @@ class App(tk.Tk):
 
 def append_job_days():
     # Функция добавления рабочих дней для получения FTE
+    create_new_window()
+
+
+def create_new_window():
     new_window = tk.Toplevel()
-    new_window.title("Добавление рабочих дней для получения FTE")
-    tk.Label(new_window, text="Это новая форма!").pack()
     new_window.geometry("500x200")
+    new_window.title("Добавление рабочих дней для получения FTE")
+    days_var = tk.IntVar()
+    frame_item = tk.Frame(new_window)
+    tk.Label(frame_item, text='Число рабочих дней', bg="#333333", fg="white", font=("Arial", 16)).grid(row=1,
+                                                                                                       sticky="e")
+    tk.Entry(frame_item, textvariable=days_var).grid(row=1, column=1, pady=20, padx=10, sticky="ew")
+
+    tk.Label(frame_item, text='Месяц из даты', bg="#333333", fg="white", font=("Arial", 16)).grid(row=2, sticky="e")
+
+    month_year = DateEntry(master=frame_item, width=15, relief="solid", dateformat='%d-%m-%Y')
+    month_year.grid(row=2, column=1, pady=10, sticky="ew",padx=10)
+    month_year.entry.delete(0, tk.END)
+    month_year.entry.insert(0, get_first_day_of_quarter(current_date=datetime.date.today()))
+
+    date_in = first_date_of_month(month_year.entry.get())
+
+    tk.Button(frame_item, text='Добавить запись', command=lambda: save_days(job_days=days_var.get(), date_in=date_in),
+              bg="#FF3399", fg="white", font=("Arial", 14)).grid(row=3, columnspan=2, pady=10)
+    frame_item.pack()
+
+
+def save_days(**params):
+    # print(f"{params['date_in']}, число:{params['job_days']}")
+    messagebox.showinfo("Сообщение", f"{params['date_in']}, число:{params['job_days']}")
 
 
 if __name__ == '__main__':
