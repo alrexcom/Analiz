@@ -6,7 +6,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap import DateEntry
 
 from reports import (get_data_report, names_reports)
-from univunit import Table, get_first_day_of_quarter, first_date_of_month
+from univunit import Table, Univunit
 import bd_unit
 
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
@@ -22,11 +22,6 @@ def prompt_file_selection():
     except Exception as e:
         messagebox.showinfo("Ошибка!", f"Не удалось выбрать файл: {e}")
         return None
-
-
-def on_date_change(event):
-    """событие на изменение dp"""
-    print("fsdfsdf")
 
 
 class App(tk.Tk):
@@ -49,11 +44,18 @@ class App(tk.Tk):
 
         self.create_widgets()
         self.create_menu()
-        self.table = Table(self)
-        self.table.pack(expand=True, fill='both')
+        # self.table = Table(self)
+        # self.table.pack(expand=True, fill='both')
+
+    def create_table(self):
+        if not hasattr(self, 'table'):
+            self.table = Table(self)
+            self.table.pack(expand=True, fill='both')
 
     def create_widgets(self):
         # Menu strip
+        current_date = datetime.now()
+
         menu_frame = tk.Frame(self, padx=5, pady=5)
         self.ds = DateEntry(
             master=menu_frame,
@@ -67,11 +69,6 @@ class App(tk.Tk):
 
         self.fte = ttk.Entry(self.fte_frame, width=5, font=("Calibri", 12),
                              textvariable=self.one_hour_fte)
-
-        self.dp = DateEntry(menu_frame,
-                            width=15,
-                            relief="solid",
-                            dateformat='%d-%m-%Y')
 
         cmb_frame = ttk.Frame(self, padding=1)
 
@@ -89,10 +86,18 @@ class App(tk.Tk):
 
         self.ds.pack(side=tk.LEFT, padx=10)
         self.ds.entry.delete(0, tk.END)
-        self.ds.entry.insert(0, get_first_day_of_quarter(current_date=datetime.now()))
 
-        self.dp.bind('<<DateEntrySelected>>', on_date_change)
+        self.ds.entry.insert(0, Univunit.get_first_day_of_quarter(current_date=current_date))
+
+        self.dp = DateEntry(menu_frame,
+                            width=15,
+                            relief="solid",
+                            dateformat='%d-%m-%Y')
+
         self.dp.pack(side=tk.LEFT, padx=10)
+        self.dp.bind('<<DateEntrySelected>>', self.on_date_change)
+        self.dp.entry.delete(0, tk.END)
+        self.dp.entry.insert(0, Univunit.get_last_day_of_current_month(date_format='%d-%m-%Y'))
 
         ttk.Label(self.fte_frame, text="FTE:", width=5, anchor=tk.CENTER,
                   border=2, font=("Calibri", 12, 'bold'),
@@ -107,6 +112,9 @@ class App(tk.Tk):
         btn_go.pack(side=tk.LEFT)
 
         menu_frame.pack(fill=tk.X)
+
+    def on_date_change(self, event):
+        self.set_fte_from_db()
 
     def cmb_function(self, event):
         num_report = event.widget.current() + 1
@@ -131,6 +139,7 @@ class App(tk.Tk):
         try:
             param = self.get_params(file_name)
             fr = get_data_report(**param)
+            self.create_table()
             self.table.configure_columns(fr['columns'])
             self.table.populate_table(fr['data'])
             self.update_window_size()
@@ -145,6 +154,7 @@ class App(tk.Tk):
         self.fte.config(state=tk.NORMAL)
         self.fte.delete(0, tk.END)
         data_po = self.dp.entry.get()
+
         self.fte.insert(0, DB_MANAGER.read_one_rec(data_po))
         self.fte.config(state='readonly')
 
@@ -181,10 +191,6 @@ class App(tk.Tk):
 
         # Добавление выпадающего меню "Файл" в панель меню
         menubar.add_cascade(label="Файл", menu=file_menu)
-
-        # Повторите эти шаги, чтобы добавить другие выпадающие меню, если это необходимо
-
-        # Отображение панели меню
         self.config(menu=menubar)
 
     def create_new_window(self):
@@ -254,7 +260,7 @@ class JobDaysApp(tk.Toplevel):
 
     def delete_rec(self):
         try:
-            date_in = first_date_of_month(self.month_year.entry.get())
+            date_in = Univunit.first_date_of_month(self.month_year.entry.get())
             DB_MANAGER.delete_record(date_in)
             self.result_label.config(text=f"За период {date_in} удалена запись")
             self.read_all_data()
@@ -266,7 +272,7 @@ class JobDaysApp(tk.Toplevel):
             days = self.days_var.get()
             if days == 0:
                 raise ValueError("Количество дней не может быть нулевым.")
-            date_in = first_date_of_month(self.month_year.entry.get())
+            date_in = Univunit.first_date_of_month(self.month_year.entry.get())
             DB_MANAGER.insert_data([(self.days_var.get(), date_in)])
             self.result_label.config(text=f"{date_in}, число:{self.days_var.get()} добавлены")
             self.read_all_data()

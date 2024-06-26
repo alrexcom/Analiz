@@ -1,4 +1,7 @@
-from univunit import (pd, convert_date)
+import pandas as pd
+from univunit import Univunit
+# (pd, convert_date)
+# import Univunit as u
 
 reports = [
     {
@@ -300,8 +303,8 @@ def get_data_report(**params):
     reportnumber = report_data[0]
 
     params['df'] = report_data[1]
-    params['date_begin'] = convert_date(params['date_begin'])
-    params['date_end'] = convert_date(params['date_end'])
+    params['date_begin'] = Univunit.convert_date(params['date_begin'])
+    params['date_end'] = Univunit.convert_date(params['date_end'])
 
     # Если ключа статус нет
     params['status'] = reports[reportnumber - 1].get('status', 'статус не указан')
