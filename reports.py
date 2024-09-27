@@ -1,5 +1,7 @@
-import pandas as pd
-from univunit import Univunit
+# import pandas as pd
+import numpy as np
+
+from univunit import Univunit, pd, save_to_json
 
 # (pd, convert_date)
 # import Univunit as u
@@ -40,11 +42,13 @@ reports = [
         "support": True
     },
     {
-        "name": "Отчет по запросам и задачам (долго открывается)",
-        "reportnumber": 4,
-        "header_row": 4,
-        "data_columns": ["ID инцидента/ЗИ", "Исполнитель  по задаче", "Трудозатраты по задаче (десят. часа)",
-                         "Содержание задачи","Статус","Дата Выполнения работ"]
+        "name": "Лукойл: Отчет по запросам и задачам (долго открывается)",
+        "reportnumber": 5,
+        "header_row": 3,
+        "data_columns": ["Дата Выполнения работ", "Время назначения задачи"],
+        "headers": ['ID инцидента/ЗИ', 'Исполнитель  по задаче', 'Трудозатраты по задаче (десят. часа)',
+                    'Время назначения задачи', 'Категория инцидента', 'Статус', 'Содержание задачи'],
+        'order by': 'Исполнитель  по задаче'
     },
 
 ]
@@ -308,32 +312,40 @@ def sla_sopr(**params):
 
 
 def get_data_report(**params):
-    report_data = get_reports(**params)
+    report_data = get_report(**params)
     reportnumber = report_data[0]
 
     params['df'] = report_data[1]
     params['date_begin'] = Univunit.convert_date(params['date_begin'])
     params['date_end'] = Univunit.convert_date(params['date_end'])
 
+    report = reports[reportnumber - 1]
+
     # Если ключа статус нет
-    params['status'] = reports[reportnumber - 1].get('status', 'статус не указан')
-    params['support'] = bool(reports[reportnumber - 1].get('support', False))
+    if report.get('status'):
+        params['status'] = report.get('status', 'статус не указан')
+    if report.get('support'):
+        params['support'] = bool(report.get('support', False))
+    if report.get('headers'):
+        params['headers'] = report.get('headers')
+    if report.get('order by'):
+        params['order by'] = report.get('order by')
 
     report_functions = {
         1: report1,
         2: report2,
         3: report_sla,
         4: report_sla,
+        5: report_lukoil,
     }
 
     frm = report_functions.get(reportnumber)
-    if frm is None:
-        raise ValueError("Некорректный номер отчета")
-
+    # if frm is None:
+    #     raise ValueError("Некорректный номер отчета")
     return frm(**params)
 
 
-def get_reports(**params):
+def get_report(**params):
     for items in reports:
         if params['name_report'] == items['name']:
             result = (items['reportnumber'],
@@ -344,3 +356,41 @@ def get_reports(**params):
 
 def names_reports():
     return [items["name"] for items in reports]
+
+
+def report_lukoil(**params):
+    # data_=("rec1", "rec2")
+
+    df = params['df']
+    # 'Исполнитель  по задаче', 'Трудозатраты по задаче (десят. часа)'
+    # promeg = df.groupby(['Исполнитель  по задаче']).agg({'Трудозатраты по задаче (десят. часа)': 'sum'})
+    # fr = df.groupby(['Исполнитель  по задаче']).agg({'Дата': 'max',  'Трудозатраты по задаче (десят. часа)': 'sum'})
+    # columns = [{"name": "Код"}, {"name": "Дата"}]
+    # data = df[params['headers']].to_records(index=False)
+    # df[params['headers']].to_csv('data.csv', header=True, index=False, sep=';')
+
+    # save_to_json(data=df[params['headers']], filename='my.json')
+
+    # Добавляем столбец во фрэйм
+    df['vid'] = np.where(df['Исполнитель  по задаче'] != 'Тапехин Алексей Александрович', "Поддержка", 'Сопровождение')
+
+    # Копируем в отдельный фрейм данные
+    kk = df.groupby(['vid', 'Исполнитель  по задаче']).agg(
+        {
+            'ID инцидента/ЗИ': "count",
+            'Трудозатраты по задаче (десят. часа)': "sum",
+        }
+    ).copy()
+
+    kk['sum_all'] = (kk['Трудозатраты по задаче (десят. часа)'].sum())
+    kk['sum_vid'] = (kk.groupby("vid")['Трудозатраты по задаче (десят. часа)'].transform('sum'))
+    kk['count_vid'] = (kk.groupby("vid")['Трудозатраты по задаче (десят. часа)'].transform('count'))
+
+    kk['sum_ispol'] = (kk.groupby('Исполнитель  по задаче')['Трудозатраты по задаче (десят. часа)'].transform('sum'))
+    # kk['count_vid'] = (kk.groupby('Исполнитель  по задаче')['Трудозатраты по задаче (десят. часа)'].transform('count'))
+    data=kk.sort_values(["vid", 'Исполнитель  по задаче'])
+    columns_ = data.columns.to_list()
+
+    columns = [{"name": col} for col in columns_]
+
+    return {'columns': columns, 'data': data.to_records(index=False)}

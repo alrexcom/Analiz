@@ -2,6 +2,7 @@ import tkinter as tk
 from datetime import date, datetime, timedelta
 import ttkbootstrap as ttk
 import pandas as pd
+import json
 
 
 class Table(tk.Frame):
@@ -151,3 +152,8 @@ class Univunit:
         last_day_of_month = first_day_of_next_month.replace(day=1) - timedelta(days=1)
         # Возвращаем отформатированную дату
         return last_day_of_month.strftime(date_format)
+
+
+def save_to_json(data, filename):
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)

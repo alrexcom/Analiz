@@ -33,14 +33,13 @@ class App(tk.Tk):
         self.title(title)
 
         self.geometry(f"{size[0]}x{size[1]}")
-
+        self.one_hour_fte =None
         self.fte_frame = None
         self.ds = None
         self.dp = None
         self.fte = None
-
+        self.middle_fte = None
         self.name_report = tk.StringVar()
-        self.one_hour_fte = tk.IntVar()
 
         self.create_widgets()
         self.create_menu()
@@ -102,6 +101,11 @@ class App(tk.Tk):
         ttk.Label(self.fte_frame, text="FTE:", width=5, anchor=tk.CENTER,
                   border=2, font=("Calibri", 12, 'bold'),
                   background='#B7DEE8', foreground='white').pack(side=tk.LEFT)
+        # tk.Checkbutton(frame_item, text="По среднему", font=("Arial", 16)).grid(row=0, sticky=tk.W)
+        self.middle_fte =tk.IntVar()
+        ttk.Checkbutton(self.fte_frame, text="По среднему", variable=self.middle_fte,
+                        onvalue=1, offvalue=0,
+                        command=self.middle_click).pack(side=tk.RIGHT)
 
         self.set_fte_from_db()
         self.fte.pack(side=tk.LEFT, padx=10)
@@ -146,6 +150,10 @@ class App(tk.Tk):
         except Exception as e:
             messagebox.showinfo("Ошибка!", f"Не смог обработать файл {file_name}: {e}")
 
+    def middle_click(self):
+        self.set_fte_from_db()
+        # print(self.middle_fte.get())
+
     # def on_date_change(self, event):
     #     """событие на изменение dp"""
     #     self.set_fte_from_db()
@@ -154,15 +162,19 @@ class App(tk.Tk):
         self.fte.config(state=tk.NORMAL)
         self.fte.delete(0, tk.END)
         data_po = self.dp.entry.get()
-
-        self.fte.insert(0, DB_MANAGER.read_one_rec(data_po))
-        self.fte.config(state='readonly')
+        if self.middle_fte.get() ==1:
+            self.fte.insert(0, '164')
+            self.fte.config(state='readonly = FALSE')
+        else:
+            self.fte.insert(0, DB_MANAGER.read_one_rec(data_po))
+            self.fte.config(state='readonly')
 
     def get_params(self, file_name):
         return {
             'filename': file_name,
             'name_report': self.name_report.get(),
             'fte': self.one_hour_fte.get(),
+            'middle_fte': self.middle_fte.get(),
             'date_end': self.dp.entry.get(),
             'date_begin': self.ds.entry.get(),
         }
@@ -215,6 +227,7 @@ class JobDaysApp(tk.Toplevel):
 
     def create_widgets(self):
         frame_item = tk.Frame(self)
+
         tk.Label(frame_item, text='Число рабочих дней', bg="#333333", fg="white", font=("Arial", 16)).grid(row=1,
                                                                                                            sticky="e")
         tk.Entry(frame_item, textvariable=self.days_var).grid(row=1, column=1, pady=20, padx=10, sticky="ew")
