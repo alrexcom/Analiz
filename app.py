@@ -33,11 +33,11 @@ class App(tk.Tk):
         self.title(title)
 
         self.geometry(f"{size[0]}x{size[1]}")
-        self.one_hour_fte =None
+        # self.one_hour_fte = None
         self.fte_frame = None
         self.ds = None
         self.dp = None
-        self.fte = None
+        # self.fte = None
         self.middle_fte = None
         self.name_report = tk.StringVar()
 
@@ -65,7 +65,7 @@ class App(tk.Tk):
 
         self.fte_frame = tk.Frame(menu_frame)
         self.fte_frame.pack_forget()
-
+        self.one_hour_fte = tk.IntVar()
         self.fte = ttk.Entry(self.fte_frame, width=5, font=("Calibri", 12),
                              textvariable=self.one_hour_fte)
 
@@ -101,8 +101,8 @@ class App(tk.Tk):
         ttk.Label(self.fte_frame, text="FTE:", width=5, anchor=tk.CENTER,
                   border=2, font=("Calibri", 12, 'bold'),
                   background='#B7DEE8', foreground='white').pack(side=tk.LEFT)
-        # tk.Checkbutton(frame_item, text="По среднему", font=("Arial", 16)).grid(row=0, sticky=tk.W)
-        self.middle_fte =tk.IntVar()
+
+        self.middle_fte = tk.IntVar()
         ttk.Checkbutton(self.fte_frame, text="По среднему", variable=self.middle_fte,
                         onvalue=1, offvalue=0,
                         command=self.middle_click).pack(side=tk.RIGHT)
@@ -117,7 +117,7 @@ class App(tk.Tk):
 
         menu_frame.pack(fill=tk.X)
 
-    def on_date_change(self, event):
+    def on_date_change(self):
         self.set_fte_from_db()
 
     def cmb_function(self, event):
@@ -162,7 +162,7 @@ class App(tk.Tk):
         self.fte.config(state=tk.NORMAL)
         self.fte.delete(0, tk.END)
         data_po = self.dp.entry.get()
-        if self.middle_fte.get() ==1:
+        if self.middle_fte.get() == 1:
             self.fte.insert(0, '164')
             self.fte.config(state='readonly = FALSE')
         else:
@@ -170,6 +170,7 @@ class App(tk.Tk):
             self.fte.config(state='readonly')
 
     def get_params(self, file_name):
+       # print(fte)
         return {
             'filename': file_name,
             'name_report': self.name_report.get(),
