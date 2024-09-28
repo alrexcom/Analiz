@@ -154,6 +154,18 @@ class Univunit:
         return last_day_of_month.strftime(date_format)
 
 
+def calc_fte(**params):
+    fte_on_month = params['fte_on_month']
+    hours = params['hours']
+    return round(hours / fte_on_month, 2)
+
+
+def calc_hours(**params):
+    fte_on_month = params['fte_on_month']
+    fte = float(params['fte'])
+    return round(fte * fte_on_month, 2)
+
+
 def save_to_json(data, filename):
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)

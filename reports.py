@@ -77,7 +77,7 @@ def report1(**param):
     hours_remain = round(hours_plan - fr[fact_sum], 2)
     fr['Остаток часов'] = hours_remain
 
-    fr = fr[fr['Факт, FTE'] > 0]
+    # fr = fr[fr['Факт, FTE'] > 0]
 
     # Преобразование DataFrame в записи NumPy
     data = fr.to_records(index=False)
