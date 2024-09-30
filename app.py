@@ -198,6 +198,7 @@ class App(tk.Tk):
 
         # Создание выпадающего меню "Файл"
         file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu.add_command(label="Ввод трудозатрат Лукойл заявок", command=self.create_new_query)
         file_menu.add_command(label="Ввести рабочие дни", command=self.create_new_window)
         file_menu.add_command(label="Калькулятор  FTE", command=self.create_fte_window)
         file_menu.add_separator()  # Добавление разделителя
@@ -207,6 +208,9 @@ class App(tk.Tk):
         menubar.add_cascade(label="Файл", menu=file_menu)
         self.config(menu=menubar)
 
+    def create_new_query(self):
+        JobDaysApp(self)
+        
     def create_new_window(self):
         JobDaysApp(self)
 
