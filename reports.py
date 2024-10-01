@@ -1,8 +1,13 @@
-# import pandas as pd
+import pandas as pd
+from datetime import datetime
+
 import numpy as np
 
-from univunit import Univunit, pd, save_to_json
+from univunit import (Univunit, pd)
+# , save_to_json)
+import bd_unit
 
+DB_MANAGER = bd_unit.DatabaseManager('test.db')
 # (pd, convert_date)
 # import Univunit as u
 
@@ -59,26 +64,40 @@ def report1(**param):
     Отчёт Данные по ресурсным планам и списанию трудозатрат сотрудников за период
 
     """
+
     df = param['df']
+    # lukoil_sum = DB_MANAGER.read_sum_lukoil(ds=param['date_begin'], dp=param['date_end'])
+    date_begin = datetime.strptime(param['date_begin'], '%Y-%m-%d').strftime('%m.%Y')
+    date_end = datetime.strptime(param['date_end'], '%Y-%m-%d').strftime('%m.%Y')
+    df_lukoil = DB_MANAGER.read_sum_lukoil(ds=date_begin, dp=date_end)
+    df = df[(df['Дата'] >= date_begin) & (df['Дата'] <= date_end)]
+    df = pd.merge(df, df_lukoil, on=['Проект', 'Пользователь', 'Дата'], how='left')
+    # df = df.replace([np.nan, -np.inf], 0)
+    user = 'Тапехин Алексей Александрович'
+
     fte = param['fte']
     fact_sum = 'Фактические трудозатраты (час.) (Сумма)'
-    headers = ['Проект', 'План, FTE', 'Пользователь', 'Фактические трудозатраты (час.) (Сумма)',
-               'Кол-во штатных единиц']
-    user = 'Тапехин Алексей Александрович'
+    headers = ['Дата', 'Проект', 'Пользователь', 'Часы лукойл', 'Фактические трудозатраты (час.) (Сумма)', 'План, FTE', 'Заявок лукойл']
 
     # fr = df[headers].loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user)]
 
     fr = df.loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user), headers]
-
-    fact_fte = round((fr[fact_sum] / fte), 2)
-    fr['Факт, FTE'] = fact_fte
     hours_plan = fte * fr['План, FTE']
     fr['Часы план'] = round(hours_plan, 2)
+    fact_fte = round((fr[fact_sum] / fte), 2)
+    #
+    fr['Факт, FTE'] = fact_fte
+    fr['Лукойл, FTE'] = round((fr['Часы лукойл'] / fte), 2)
     hours_remain = round(hours_plan - fr[fact_sum], 2)
     fr['Остаток часов'] = hours_remain
+    fr['Остаток FTE'] = round((fr['Остаток часов'][fr['Остаток часов'] > 0] / fte), 2)
+
+    fr = fr.replace([np.nan, -np.inf], '')
 
     # fr = fr[fr['Факт, FTE'] > 0]
-
+    fr = fr.reindex(columns=['Дата', 'Проект', 'Пользователь', 'Часы план','Заявок лукойл', 'Часы лукойл',
+                             'Фактические трудозатраты (час.) (Сумма)',
+                             'План, FTE', 'Лукойл, FTE', 'Факт, FTE', 'Остаток часов', 'Остаток FTE'])
     # Преобразование DataFrame в записи NumPy
     data = fr.to_records(index=False)
     columns = [{"name": col} for col in fr.columns]
@@ -388,7 +407,7 @@ def report_lukoil(**params):
 
     kk['sum_ispol'] = (kk.groupby('Исполнитель  по задаче')['Трудозатраты по задаче (десят. часа)'].transform('sum'))
     # kk['count_vid'] = (kk.groupby('Исполнитель  по задаче')['Трудозатраты по задаче (десят. часа)'].transform('count'))
-    data=kk.sort_values(["vid", 'Исполнитель  по задаче'])
+    data = kk.sort_values(["vid", 'Исполнитель  по задаче'])
     columns_ = data.columns.to_list()
 
     columns = [{"name": col} for col in columns_]

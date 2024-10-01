@@ -154,11 +154,6 @@ class App(tk.Tk):
 
     def middle_click(self):
         self.set_fte_from_db()
-        # print(self.middle_fte.get())
-
-    # def on_date_change(self, event):
-    #     """событие на изменение dp"""
-    #     self.set_fte_from_db()
 
     def set_fte_from_db(self):
         self.fte.config(state=tk.NORMAL)
@@ -172,6 +167,7 @@ class App(tk.Tk):
             self.fte.config(state='readonly')
 
     def get_params(self, file_name):
+        #
         # print(fte)
         return {
             'filename': file_name,

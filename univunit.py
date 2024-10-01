@@ -153,7 +153,19 @@ class Univunit:
         # Возвращаем отформатированную дату
         return last_day_of_month.strftime(date_format)
 
-
+    @staticmethod
+    def get_last_day_of_month(date_,date_format="%d-%m-%Y"):
+        """
+            Последнее число текущего месяца
+        """
+        # Текущая дата
+        # today = datetime.strptime(date, "%d-%m-%Y")
+        # Первый день следующего месяца
+        first_day_of_next_month = datetime(date_.year, date_.month, 1) + timedelta(days=31)
+        # Откатываемся на день назад, чтобы получить последний день текущего месяца
+        last_day_of_month = first_day_of_next_month.replace(day=1) - timedelta(days=1)
+        # Возвращаем отформатированную дату
+        return last_day_of_month.strftime(date_format)
 def calc_fte(**params):
     fte_on_month = params['fte_on_month']
     hours = params['hours']

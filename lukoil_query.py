@@ -83,7 +83,7 @@ class LukoilQueries(tk.Toplevel):
             num_query = self.num_query.get()
             query_hours = self.hours_var.get()
 
-            DB_MANAGER.insert_query([(num_query, query_hours, quoter, date_registration)])
+            DB_MANAGER.insert_query([(num_query, query_hours, quoter, date_registration.strftime("%m.%Y"))])
             self.result_label.config(text=f" Запрос {num_query} за {date_registration} добавлен")
             self.read_all_data()
         except ValueError as ve:

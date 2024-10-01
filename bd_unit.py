@@ -1,6 +1,8 @@
 from datetime import datetime
 import sqlite3
 
+import pandas as pd
+
 DB_NAME = "test.db"
 
 
@@ -74,23 +76,21 @@ class DatabaseManager:
             cursor = conn.execute(sql_read_table, (first_data,))
             return cursor.fetchall()
 
-    # def read_one_rec(self,**params):
-    #     # current_date = datetime.now()
-    #     table_name = params['table_name']
-    #     current_date=params['current_date']
-    #     current_date=datetime.strptime(current_date,  '%d-%m-%Y').date()
-    #     first_data = current_date.replace(day=1).strftime('%Y-%m-%d')
-    #
-    #     with sqlite3.connect(self.db_name) as conn:
-    #         if table_name == 'tab_fte':
-    #             sql_read_table = "SELECT FTE FROM tab_fte WHERE MONTH_NAME = ?;"
-    #         elif table_name == 'tab_lukoil':
-    #             sql_read_table = f"SELECT FTE FROM {table_name} WHERE num_query = ?;"
-    #         cursor = conn.execute(sql_read_table, (first_data,))
-    #         return cursor.fetchall()
-    # rows = cursor.fetchall()
-    # for row in rows:
-    #     print(row)
+    def read_sum_lukoil(self, ds, dp):
+        project = 'С0134-КИС "Производственный учет и отчетность"'
+        user = 'Тапехин Алексей Александрович'
+        with sqlite3.connect(self.db_name) as conn:
+            #  = , [Пользователь] = ,
+            sql_read_table = (
+                f"SELECT '{project}' as [Проект], '{user}' as [Пользователь], date_registration as [Дата], "
+                f"sum(query_hours) as [Часы лукойл] , count(*) as [Заявок лукойл] "
+                f"FROM tab_lukoil "
+                f"where date_registration >= ? and date_registration <= ? "
+                f"group by date_registration")
+        cursor = conn.execute(sql_read_table, (ds, dp))
+        rows = cursor.fetchall()
+        return pd.DataFrame(rows, columns=['Проект', 'Пользователь', 'Дата', 'Часы лукойл', 'Заявок лукойл'])
+        # return rows
 
     def read_all_lukoil(self):
         with sqlite3.connect(self.db_name) as conn:
@@ -100,23 +100,9 @@ class DatabaseManager:
         rows = cursor.fetchall()
         return rows
 
-
     def read_all_table(self):
         with sqlite3.connect(self.db_name) as conn:
             sql_read_table = "SELECT  JOB_DAYS, MONTH_NAME, FTE FROM tab_fte order by MONTH_NAME;"
             cursor = conn.execute(sql_read_table)
             rows = cursor.fetchall()
             return rows
-# def insert_new_data(self):
-#     self.delete_table()
-#     params = [
-#         (19, '2024-06-01'),
-#         (23, '2024-07-01')
-#     ]
-#     self.insert_data(params)
-
-# if __name__ == '__main__':
-#     db_manager = DatabaseManager(DB_NAME)
-#     db_manager.create_table()
-# db_manager.insert_new_data()
-# db_manager.read_table()
