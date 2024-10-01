@@ -7,7 +7,7 @@ class CalcApp(tk.Toplevel):
         super().__init__(parent)
 
         self.geometry("400x200")
-        self.title("Посчитаем фте")
+        self.title("Калькулятор")
         self.hours_var = tk.IntVar()
         self.var_fte = tk.StringVar()
         self.fte_on_month = tk.IntVar()

@@ -83,13 +83,13 @@ class DatabaseManager:
             #  = , [Пользователь] = ,
             sql_read_table = (
                 f"SELECT '{project}' as [Проект], '{user}' as [Пользователь], date_registration as [Дата], "
-                f"sum(query_hours) as [Часы лукойл] , count(*) as [Заявок лукойл] "
+                f"sum(query_hours) as [Лукойл, час.] , count(*) as [Заявок лукойл] "
                 f"FROM tab_lukoil "
                 f"where date_registration >= ? and date_registration <= ? "
                 f"group by date_registration")
         cursor = conn.execute(sql_read_table, (ds, dp))
         rows = cursor.fetchall()
-        return pd.DataFrame(rows, columns=['Проект', 'Пользователь', 'Дата', 'Часы лукойл', 'Заявок лукойл'])
+        return pd.DataFrame(rows, columns=['Проект', 'Пользователь', 'Дата', 'Лукойл, час.', 'Заявок лукойл'])
         # return rows
 
     def read_all_lukoil(self):

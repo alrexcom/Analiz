@@ -77,27 +77,33 @@ def report1(**param):
 
     fte = param['fte']
     fact_sum = 'Фактические трудозатраты (час.) (Сумма)'
-    headers = ['Дата', 'Проект', 'Пользователь', 'Часы лукойл', 'Фактические трудозатраты (час.) (Сумма)', 'План, FTE', 'Заявок лукойл']
+    headers = ['Дата', 'Проект', 'Пользователь', 'Лукойл, час.', 'Фактические трудозатраты (час.) (Сумма)', 'План, FTE',
+               'Заявок лукойл']
 
     # fr = df[headers].loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user)]
 
     fr = df.loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user), headers]
     hours_plan = fte * fr['План, FTE']
-    fr['Часы план'] = round(hours_plan, 2)
+    hours_plan_week = round(hours_plan / 4, 2)
+    fr['План ч. мес.'] = round(hours_plan, 2)
+    fr['План ч. нед.'] = hours_plan_week
+    # f"{round(hours_plan, 2)}  / {round(hours_plan/4, 2)}"
+
     fact_fte = round((fr[fact_sum] / fte), 2)
-    #
+
     fr['Факт, FTE'] = fact_fte
-    fr['Лукойл, FTE'] = round((fr['Часы лукойл'] / fte), 2)
+    fr['Лукойл, FTE'] = round((fr['Лукойл, час.'] / fte), 2)
     hours_remain = round(hours_plan - fr[fact_sum], 2)
     fr['Остаток часов'] = hours_remain
     fr['Остаток FTE'] = round((fr['Остаток часов'][fr['Остаток часов'] > 0] / fte), 2)
-
+    fr = fr.sort_values('Пользователь')
     fr = fr.replace([np.nan, -np.inf], '')
 
     # fr = fr[fr['Факт, FTE'] > 0]
-    fr = fr.reindex(columns=['Дата', 'Проект', 'Пользователь', 'Часы план','Заявок лукойл', 'Часы лукойл',
-                             'Фактические трудозатраты (час.) (Сумма)',
-                             'План, FTE', 'Лукойл, FTE', 'Факт, FTE', 'Остаток часов', 'Остаток FTE'])
+    fr = fr.reindex(
+        columns=['Дата', 'Проект', 'Пользователь', 'План ч. мес.', 'План ч. нед.', 'Заявок лукойл', 'Лукойл, час.',
+                 'Фактические трудозатраты (час.) (Сумма)',
+                 'План, FTE', 'Лукойл, FTE', 'Факт, FTE', 'Остаток часов', 'Остаток FTE'])
     # Преобразование DataFrame в записи NumPy
     data = fr.to_records(index=False)
     columns = [{"name": col} for col in fr.columns]

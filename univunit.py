@@ -1,8 +1,12 @@
 import tkinter as tk
 from datetime import date, datetime, timedelta
+from tkinter import messagebox
+
 import ttkbootstrap as ttk
 import pandas as pd
 import json
+
+from _tkinter import TclError
 
 
 class Table(tk.Frame):
@@ -173,8 +177,13 @@ def calc_fte(**params):
 
 
 def calc_hours(**params):
-    fte_on_month = params['fte_on_month']
-    fte = float(params['fte'])
+    fte_on_month = 0
+    fte = 0
+    try:
+        fte_on_month = params['fte_on_month']
+        fte = float(params['fte'])
+    except Exception as e:
+        messagebox.showinfo('Ошибка вычисления', f"Запятая в числе не используется {e}")
     return round(fte * fte_on_month, 2)
 
 
