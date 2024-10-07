@@ -7,7 +7,7 @@ from ttkbootstrap import DateEntry
 import bd_unit
 from univunit import Table, Univunit
 
-DB_MANAGER = bd_unit.DatabaseManager('test.db')
+DB_MANAGER = bd_unit.DatabaseManager()
 
 
 class LukoilQueries(tk.Toplevel):

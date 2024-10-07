@@ -11,7 +11,7 @@ from reports import (get_data_report, names_reports)
 from univunit import Table, Univunit
 import bd_unit
 
-DB_MANAGER = bd_unit.DatabaseManager('test.db')
+DB_MANAGER = bd_unit.DatabaseManager()
 
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
           'yeti', 'pulse', 'united', 'morph', 'journal', 'darkly',

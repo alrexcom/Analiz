@@ -6,7 +6,7 @@ import bd_unit
 from univunit import Table, Univunit
 from ttkbootstrap import DateEntry
 
-DB_MANAGER = bd_unit.DatabaseManager('test.db')
+DB_MANAGER = bd_unit.DatabaseManager()
 
 
 class JobDaysApp(tk.Toplevel):

@@ -7,7 +7,7 @@ from univunit import (Univunit, pd)
 # , save_to_json)
 import bd_unit
 
-DB_MANAGER = bd_unit.DatabaseManager('test.db')
+DB_MANAGER = bd_unit.DatabaseManager()
 # (pd, convert_date)
 # import Univunit as u
 
@@ -165,14 +165,27 @@ def report_sla(**params):
         # Объединённая фильтрация
         filtered_mdf = mdf.query("Услуга == 'КИС \"Производственный учет и отчетность\"' and Статус in @status")
 
+        date_filter = (
+                          ((filtered_mdf['Дата регистрации'] >= params["date_begin"]) &
+                (filtered_mdf['Дата регистрации'] <= params["date_end"]))
+                       | ((filtered_mdf['Открыто на начало периода'] == 1)
+                       ) & (filtered_mdf['Дата закрытия'] >= params["date_begin"]))
+
+        # filtered_mdf = filtered_mdf[date_filter]
         # Классификация запросов
         filtered_mdf["П2С"] = "П"
         filtered_mdf.loc[filtered_mdf["Тип запроса"] == 'Нестандартное', "П2С"] = "СДОП"
         filtered_mdf.loc[filtered_mdf["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
 
+
+
+        if params['support']:
+            filtered_mdf = filtered_mdf[filtered_mdf["П2С"] == "П"]
+        else:
+            filtered_mdf = filtered_mdf[(filtered_mdf["П2С"] == "С") | (filtered_mdf["П2С"] == "СДОП")]
+
         # Фильтрация по датам
-        date_filter = ((filtered_mdf['Дата регистрации'] >= params["date_begin"]) &
-                       (filtered_mdf['Дата регистрации'] <= params["date_end"]))
+
         data_reg = filtered_mdf[date_filter]
 
         # Фильтрация просроченных запросов
@@ -216,6 +229,7 @@ def sla_support(**params):
 
     par = get_data_sla(**params)
     mdf = params['mdf']
+
     sum1 = par["sum1"].get('П', 0)
     sum2 = par["sum2"].get('П', 0)
 
@@ -271,7 +285,7 @@ def get_data_sla(**par):
     # tur2
     sum7 = par["data_prosr"][['Просрочено в период', 'П2С']].groupby(['П2С']).sum()
     # tur3 = "Открыто на начало периода"
-    sum8 = par['mdf'][["Открыто на начало периода", 'П2С']].groupby(['П2С']).sum()
+    sum8 = par["mdf"][["Открыто на начало периода", 'П2С']].groupby(['П2С']).sum()
     return {"sum1": sum1, "sum2": sum2, "sum5": sum5, "sum6": sum6, "sum7": sum7, "sum8": sum8}
 
 
@@ -279,8 +293,15 @@ def sla_sopr(**params):
     """
       Данные по SLA Сопровождение
      """
+    # mdf = params["mdf"]
+    # overdue_filter = ((mdf['Дата закрытия'] <= params["date_end"]) &
+    #                   (mdf['Дата закрытия'] >= params["date_begin"]))
+    # params["data_reg"] = mdf[overdue_filter]
+
+    # params["data_reg"] = params["mdf"]
 
     data_reg = params["data_reg"]
+    # data_reg = params["mdf"]
 
     par = get_data_sla(**params)
     sum1 = par["sum1"]
@@ -301,38 +322,65 @@ def sla_sopr(**params):
     slap = calc(sum1, sum6[tur1], sum7[tur2], sum8[tur3], 'П')
     slac = calc(sum1, sum6[tur1], sum7[tur2], sum8[tur3], 'С')
 
+    # ss = {
+    #     "9 Уровень исполнения SLA общий": round(100 * (sum2.sum() - sum6[tur1].sum()) / sum2.sum(), 2),
+    #     "       поддержки": slap,
+    #     "       сопровождения": slac,
+    #
+    #     "1 ( tur3 ) Общее количество незакрытых заявок по сопровождению/поддержке на начало периода ": sum8[
+    #         tur3].sum(),
+    #     "       tur3 поддержка": sum8[tur3].get('П', 0),
+    #     "       tur3 сопровождение": sum8[tur3].get('С', 0),
+    #
+    #     "2 (tur4) Общее количество зарегистрированных заявок по сопровождению/поддержке ": sum1.sum(),
+    #     "       tur4 поддержка": sum1.get('П', 0),
+    #     "       tur4 сопровождение": sum1.get('С', 0),
+    #
+    #     "3 п/п Общее количество закрытых за период заявок по сопровождению/поддержке ": sum2.sum(),
+    #     "       p3 поддержка": sum2.get('П', 0),
+    #     "       p3 сопровождение": sum2.get('С', 0),
+    #
+    #     "4 (tur1) Общее количество закрытых за период заявок по сопровождению/поддержке c нарушением SLA": sum6[
+    #         tur1].sum(),
+    #     "       tur1 поддержка": sum6[tur1].get('П', 0),
+    #     "       tur1 сопровождение": sum6[tur1].get('С', 0),
+    #
+    #     "5 п/п Общее количество незакрытых заявок по сопровождению/поддержке на конец периода": sum51.sum(),
+    #     "       p5 поддержка": sum51.get('П', 0),
+    #     "       p5 сопровождение": sum51.get('С', 0),
+    #
+    #     "7 (tur2) Количество заявок за период с превышением срока выполнения ":
+    #         sum7[tur2].sum(),
+    #     "       по поддержке": sum7[tur2].get('П', 0),
+    #     "       по сопровождению": sum7[tur2].get('С', 0)
+    # }
+
     ss = {
         "9 Уровень исполнения SLA общий": round(100 * (sum2.sum() - sum6[tur1].sum()) / sum2.sum(), 2),
-        "       поддержки": slap,
         "       сопровождения": slac,
 
-        "1 ( tur3 ) Общее количество незакрытых заявок по сопровождению/поддержке на начало периода ": sum8[
-            tur3].sum(),
-        "       tur3 поддержка": sum8[tur3].get('П', 0),
-        "       tur3 сопровождение": sum8[tur3].get('С', 0),
+        "1 ( tur3 ) Общее количество незакрытых заявок по сопровождению/поддержке на начало периода ":
+            sum8[tur3].get('С', 0),
+        # "       tur3 сопровождение": sum8[tur3].get('С', 0),
 
-        "2 (tur4) Общее количество зарегистрированных заявок по сопровождению/поддержке ": sum1.sum(),
-        "       tur4 поддержка": sum1.get('П', 0),
-        "       tur4 сопровождение": sum1.get('С', 0),
+        "2 (tur4) Общее количество зарегистрированных заявок по сопровождению/поддержке ": sum1.get('С', 0),
+        # "       tur4 сопровождение": sum1.get('С', 0),
 
-        "3 п/п Общее количество закрытых за период заявок по сопровождению/поддержке ": sum2.sum(),
-        "       p3 поддержка": sum2.get('П', 0),
-        "       p3 сопровождение": sum2.get('С', 0),
+        "3 п/п Общее количество закрытых за период заявок по сопровождению/поддержке ": sum2.get('С', 0),
+        # "       p3 сопровождение": sum2.get('С', 0),
 
-        "4 (tur1) Общее количество закрытых за период заявок по сопровождению/поддержке c нарушением SLA": sum6[
-            tur1].sum(),
-        "       tur1 поддержка": sum6[tur1].get('П', 0),
-        "       tur1 сопровождение": sum6[tur1].get('С', 0),
+        "4 (tur1) Общее количество закрытых за период заявок по сопровождению/поддержке c нарушением SLA":
+            sum6[tur1].get('С', 0),
+        # "       tur1 сопровождение": sum6[tur1].get('С', 0),
 
-        "5 п/п Общее количество незакрытых заявок по сопровождению/поддержке на конец периода": sum51.sum(),
-        "       p5 поддержка": sum51.get('П', 0),
-        "       p5 сопровождение": sum51.get('С', 0),
+        "5 п/п Общее количество незакрытых заявок по сопровождению/поддержке на конец периода": sum51.get('С', 0),
+        # "       p5 сопровождение": sum51.get('С', 0),
 
         "7 (tur2) Количество заявок за период с превышением срока выполнения ":
-            sum7[tur2].sum(),
-        "       по поддержке": sum7[tur2].get('П', 0),
-        "       по сопровождению": sum7[tur2].get('С', 0)
+            sum7[tur2].get('С', 0),
+        # "       по сопровождению": sum7[tur2].get('С', 0)
     }
+
     return ss
 
 
@@ -345,12 +393,12 @@ def get_data_report(**params):
     params['date_end'] = Univunit.convert_date(params['date_end'])
 
     report = reports[reportnumber - 1]
-
+    params['support'] = bool(report.get('support'))
     # Если ключа статус нет
     if report.get('status'):
         params['status'] = report.get('status', 'статус не указан')
-    if report.get('support'):
-        params['support'] = bool(report.get('support', False))
+    # if report.get('support'):
+    #     params['support'] = bool(report.get('support', False))
     if report.get('headers'):
         params['headers'] = report.get('headers')
     if report.get('order by'):

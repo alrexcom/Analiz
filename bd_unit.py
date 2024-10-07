@@ -1,5 +1,6 @@
 from datetime import datetime
 import sqlite3
+from pathlib import Path
 
 import pandas as pd
 
@@ -7,8 +8,9 @@ DB_NAME = "test.db"
 
 
 class DatabaseManager:
-    def __init__(self, db_name):
-        self.db_name = db_name
+    def __init__(self):
+
+        self.db_name = Path('.').absolute().joinpath('BD').joinpath(DB_NAME)
 
     # def create_table(self):
     #     with sqlite3.connect(self.db_name) as conn:
