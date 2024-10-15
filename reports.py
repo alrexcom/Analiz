@@ -66,10 +66,12 @@ def report1(**param):
     """
 
     df = param['df']
-    # lukoil_sum = DB_MANAGER.read_sum_lukoil(ds=param['date_begin'], dp=param['date_end'])
+
+    df_lukoil = DB_MANAGER.read_sum_lukoil(ds=param['date_begin'], dp=param['date_end'])
+
     date_begin = datetime.strptime(param['date_begin'], '%Y-%m-%d').strftime('%m.%Y')
     date_end = datetime.strptime(param['date_end'], '%Y-%m-%d').strftime('%m.%Y')
-    df_lukoil = DB_MANAGER.read_sum_lukoil(ds=date_begin, dp=date_end)
+
     df = df[(df['Дата'] >= date_begin) & (df['Дата'] <= date_end)]
     df = pd.merge(df, df_lukoil, on=['Проект', 'Пользователь', 'Дата'], how='left')
     # df = df.replace([np.nan, -np.inf], 0)
@@ -197,7 +199,7 @@ def report_sla(**params):
 
         # Фильтрация по датам
         date_filter = ((filtered_mdf['Дата регистрации'] >= ds) &
-                                  (filtered_mdf['Дата регистрации'] <= dp))
+                       (filtered_mdf['Дата регистрации'] <= dp))
         data_reg = filtered_mdf[date_filter]
 
         # Фильтрация просроченных запросов
@@ -479,3 +481,22 @@ def report_lukoil(**params):
     columns = [{"name": col} for col in columns_]
 
     return {'columns': columns, 'data': data.to_records(index=False)}
+
+
+def get_data_lukoil(data_fromsql):
+    col = ['Заявка', 'Подзадача', 'Часы', 'Регистрация', 'Квартал', 'Месяц', 'Содержание']
+    df = pd.DataFrame(data_fromsql, columns=col)
+    # Преобразуем столбец с датами в datetime формат
+    df['Регистрация'] = pd.to_datetime(df['Регистрация'])
+    df['fte'] = round(df['Часы'] / 164, 2)
+    # Найдем начало месяца для каждой даты
+    df['month_start'] = df['Регистрация'].values.astype('datetime64[M]')
+
+    # Рассчитаем, сколько недель прошло с начала месяца
+    df['Неделя'] = ((df['Регистрация'] - df['month_start']).dt.days // 7) + 1
+
+    # Группируем по номеру недели в месяце и считаем среднее значение
+    weekly_summary = df.groupby(['Месяц', 'Неделя'])[['Часы', 'fte']].sum()
+
+    print(weekly_summary)
+    return weekly_summary

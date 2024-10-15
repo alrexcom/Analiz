@@ -48,6 +48,10 @@ class App(tk.Tk):
         # self.table = Table(self)
         # self.table.pack(expand=True, fill='both')
 
+        # Запускаем главный цикл приложения
+        self.protocol("WM_DELETE_WINDOW", lambda: on_closing(self))  # Обработка закрытия окна
+        self.mainloop()
+
     def create_table(self):
         if not hasattr(self, 'table'):
             self.table = Table(self)
@@ -195,7 +199,7 @@ class App(tk.Tk):
 
         # Создание выпадающего меню "Файл"
         file_menu = tk.Menu(menubar, tearoff=0)
-        file_menu.add_command(label="Ввод трудозатрат Лукойл заявок", command=self.create_new_query)
+        file_menu.add_command(label="Лукойл заявки", command=self.create_new_query)
         file_menu.add_command(label="Ввести рабочие дни", command=self.create_new_window)
         file_menu.add_command(label="Калькулятор  FTE", command=self.create_fte_window)
         file_menu.add_separator()  # Добавление разделителя
@@ -213,6 +217,11 @@ class App(tk.Tk):
 
     def create_fte_window(self):
         calc.CalcApp(self)
+
+
+def on_closing(self):
+    if messagebox.askokcancel("Выход", "Вы действительно хотите выйти?"):
+        self.destroy()
 
 
 if __name__ == '__main__':

@@ -1,89 +1,84 @@
 import pandas as pd
-import numpy as np
-from reports import reports
+import tkinter as tk
+from tkinter import ttk, messagebox
+import bd_unit
 
-rep = reports[4]
-cols = rep['headers']
+DB_MANAGER = bd_unit.DatabaseManager()
 
-data = pd.read_csv('data.csv', sep=';', encoding='utf-8',
-                   parse_dates=[], header=0, date_format='%Y%m%d')
+def get_data_lukoil(data_fromsql):
+    if not data_fromsql:
+        print("Нет данных для обработки.")
+        return pd.DataFrame(columns=['Месяц', 'Неделя', 'Часы', 'fte'])  # Возвращаем пустой DataFrame
 
-df = pd.DataFrame(data, columns=cols)
+    # Определяем колонки для DataFrame
+    col = ['Заявка', 'Подзадача', 'Часы', 'Регистрация', 'Квартал', 'Месяц', 'Содержание']
+    df = pd.DataFrame(data_fromsql, columns=col)
 
-# Добавляем столбец во фрэйм
-df['vid'] = np.where(df['Исполнитель  по задаче'] != 'Тапехин Алексей Александрович', "Поддержка", 'Сопровождение')
-# df['vsego'] = '10'
-# Копируем в отдельный фрейм данные
-kk = df.groupby(['vid', 'Исполнитель  по задаче']).agg(
-    {
-        'ID инцидента/ЗИ': "count",
-        'Трудозатраты по задаче (десят. часа)': "sum",
-    }
-).copy()
+    # Преобразуем столбец с датами в datetime формат
+    df['Регистрация'] = pd.to_datetime(df['Регистрация'], errors='coerce')  # Обработка ошибок преобразования
 
+    # Проверка на наличие NaT после преобразования
+    if df['Регистрация'].isnull().any():
+        print("Некоторые даты были некорректными и будут проигнорированы.")
+        df = df.dropna(subset=['Регистрация'])
 
-def window_():
-    # print(kk)
-    ww1 = kk
-    ww2 = kk.rolling(window=2).sum()
-    ww3 = kk.expanding(2).sum()
-    print(ww1)
-    print(ww2)
-    print(ww3)
+    # Добавляем столбец fte
+    df['fte'] = df['Часы'] / 164
 
+    # Находим начало месяца для каждой даты
+    df['month_start'] = df['Регистрация'].dt.to_period('M').dt.to_timestamp()
 
-# df2["ma_28_day"] = (
-# df2.sort_values("Date")
-# .groupby("stocks")["closing_price"]
-# .transform(lambda x: x.rolling(28, min_periods=1).mean())
+    # Рассчитываем, сколько недель прошло с начала месяца
+    df['Неделя'] = ((df['Регистрация'] - df['month_start']).dt.days // 7) + 1
 
-def nwe_():
-    # cols1 = ['Исполнитель  по задаче', 'Трудозатраты по задаче (десят. часа)']
-    # df = pd.DataFrame(data, columns=cols1)
-    # df1=df.groupby('Исполнитель  по задаче').agg({'Трудозатраты по задаче (десят. часа)':'sum'})
-    # df1['vid'] = np.where(df['Исполнитель  по задаче'] != 'Тапехин Алексей Александрович', "Поддержка", 'Сопровождение')
+    # Группируем по номеру месяца и неделе, суммируем Часы и fte
+    weekly_summary = df.groupby(['Месяц', 'Неделя'])[['Часы', 'fte']].sum().reset_index()
 
-    kk['sum_all'] = (kk['Трудозатраты по задаче (десят. часа)'].sum())
-    kk['sum_vid'] = (kk.groupby("vid")['Трудозатраты по задаче (десят. часа)'].transform('sum'))
-    kk['count_vid'] = (kk.groupby("vid")['Трудозатраты по задаче (десят. часа)'].transform('count'))
+    # Устанавливаем новый индекс для отображения
+    weekly_summary.set_index(['Месяц', 'Неделя'], inplace=True)
 
-    kk['sum_ispol'] = (kk.groupby('Исполнитель  по задаче')['Трудозатраты по задаче (десят. часа)'].transform('sum'))
-    kk['count_vid'] = (kk.groupby('Исполнитель  по задаче')['Трудозатраты по задаче (десят. часа)'].transform('count'))
-    out_=kk.sort_values(["vid", 'Исполнитель  по задаче'])
-    print(out_)
+    # print("Группированные данные:\n", weekly_summary)  # Отладочный вывод
+    weekly_summary['fte'] = weekly_summary['fte'].round(2)
+    return weekly_summary
 
+def show_data_in_table(data):
+    # Создаем главное окно
+    root = tk.Tk()
+    root.title("Таблица Lukoil")
 
-def one():
-    # Считаем разные группировки
-    my = kk.groupby(['vid']).transform("sum")
-    # vs = kk.agg({'vsego':"sum"}).transform("sum")
-    my1 = kk.groupby(['Исполнитель  по задаче']).transform("sum")
-    # itog=kk.sum()
-    # print(itog)
-    # Переименуем стобцы полученных значений
-    my1 = my1.rename(
-        columns={'Трудозатраты по задаче (десят. часа)': 'Трудозатраты', 'ID инцидента/ЗИ': 'Количество заявок'})
-    my = my.rename(
-        columns={'Трудозатраты по задаче (десят. часа)': 'Трудозатраты по виду', 'ID инцидента/ЗИ': 'Общее количество'})
+    # Создаем Treeview для отображения таблицы
+    tree = ttk.Treeview(root, columns=['Месяц', 'Неделя', 'Часы', 'fte'], show='headings')
+    tree.pack(side='top', fill='both', expand=True)
 
-    # Соединяем по столбцам 2 dataframe
-    tab = pd.concat([my, my1], axis=1).reset_index()
-    # tab = pd.concat([tab, itog], axis=1)
+    # Настраиваем заголовки столбцов
+    for column in ['Месяц', 'Неделя', 'Часы', 'fte']:
+        tree.heading(column, text=column)
+        tree.column(column, anchor='center')
 
-    # print(tab)
-    # Преобразование полученного набора данных в лист
-    # print(tab.values.tolist())
+    # Вставляем данные в таблицу
+    for index, row in data.iterrows():
+        # Индекс представляется как кортеж
+        month_week = index
+        # Вставляем значения, формируя строку для отображения
+        tree.insert("", "end", values=(month_week[0], month_week[1], row['Часы'], row['fte']))
 
-    # pivot
+    # Добавляем кнопку для выхода из приложения
+    btn_exit = tk.Button(root, text="Выход", command=root.destroy)
+    btn_exit.pack(side='bottom')
 
-    pv = tab.pivot(index=['Исполнитель  по задаче', 'Трудозатраты'],
-                   columns=['vid', 'Трудозатраты по виду', 'Общее количество'],
-                   values=['Количество заявок'])
+    # Запускаем главный цикл приложения
+    root.protocol("WM_DELETE_WINDOW", lambda: on_closing(root))  # Обработка закрытия окна
+    root.mainloop()
 
-    print(pv)
+def on_closing(root):
+    if messagebox.askokcancel("Выход", "Вы действительно хотите выйти?"):
+        root.destroy()
 
+# Получаем данные и выводим в таблицу
+data_fromsql = DB_MANAGER.read_all_lukoil()
+weekly_summary = get_data_lukoil(data_fromsql)
 
-# one()
-# window_()
-
-nwe_()
+if not weekly_summary.empty:
+    show_data_in_table(weekly_summary)
+else:
+    print("Нет данных для отображения.")

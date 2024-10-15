@@ -7,6 +7,8 @@ from ttkbootstrap import DateEntry
 import bd_unit
 from univunit import Table, Univunit
 
+from reports import get_data_lukoil
+
 DB_MANAGER = bd_unit.DatabaseManager()
 
 
@@ -62,12 +64,15 @@ class LukoilQueries(tk.Toplevel):
         self.description.grid(row=6, columnspan=2, sticky="ew")
 
         frame_buttons = tk.Frame(frame_item)
-        tk.Button(frame_buttons, text=' Добавить',
+        tk.Button(frame_buttons, text=' Добавить ',
                   command=self.save_days,
+                  bg="#FF3399", fg="white", font=("Arial", 12)).pack(side=tk.LEFT, padx=10)
+        tk.Button(frame_buttons, text=' Обновить ',
+                  # command=self.save_days,
                   bg="#FF3399", fg="white", font=("Arial", 12)).pack(side=tk.LEFT, padx=10)
         tk.Button(frame_buttons, text=' Удалить ',
                   command=self.delete_rec,
-                  bg="#FF3399", fg="white", font=("Arial", 12)).pack(side=tk.LEFT)
+                  bg="red", fg="white", font=("Arial", 12)).pack(side=tk.LEFT)
         frame_buttons.grid(row=7, columnspan=2, pady=10)
         frame_item.pack()
 
@@ -78,18 +83,25 @@ class LukoilQueries(tk.Toplevel):
              {'name': 'Месяц'},
              {'name': 'Содержание'}])
         data = DB_MANAGER.read_all_lukoil()
+        df=get_data_lukoil(data)
+
         self.table_fte.populate_table(data)
         # Привязываем обновление переменной num_query при выборе строки
         self.table_fte.tree.bind('<<TreeviewSelect>>', self.update_num_query)
 
+
+
+
     def update_num_query(self, event):
         """Обновляем переменную self.num_query при выборе строки в таблице."""
+        self.description.delete("1.0", tk.END)  # очистка текстового поля
         cur_item = self.table_fte.tree.item(self.table_fte.tree.focus())  # Получаем данные выбранной строки
         if cur_item:
             values = cur_item.get('values', [])  # Получаем список значений
             if values:
                 self.num_query.set(values[0])  # Устанавливаем значение первой колонки (Заявка)
                 self.num_task.set(values[1])  # Устанавливаем значение первой колонки (Заявка)
+                self.description.insert(tk.END, values[6])
 
     def delete_rec(self):
         try:
