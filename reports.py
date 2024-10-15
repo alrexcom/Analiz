@@ -158,26 +158,37 @@ def report_sla(**params):
     Сводный список запросов для SLA
     """
     try:
-        mdf = params["df"]
+        filtered_mdf = params["df"]
 
         # status переменная нужна в запросе
         status = params['status']
         # Объединённая фильтрация
-        filtered_mdf = mdf.query("Услуга == 'КИС \"Производственный учет и отчетность\"' and Статус in @status")
+        # filtered_mdf = mdf.query("Услуга == 'КИС \"Производственный учет и отчетность\"' and Статус in @status")
+        ds = params["date_begin"]
+        dp = params["date_end"]
+        filtered_mdf["dateisnull"] = "0"
+        filtered_mdf.loc[filtered_mdf['Дата закрытия'].isna(), "dateisnull"] = -1
 
         date_filter = (
-                          ((filtered_mdf['Дата регистрации'] >= params["date_begin"]) &
-                (filtered_mdf['Дата регистрации'] <= params["date_end"]))
-                       | ((filtered_mdf['Открыто на начало периода'] == 1)
-                       ) & (filtered_mdf['Дата закрытия'] >= params["date_begin"]))
+                (filtered_mdf['Статус'] != "Отменено") & (filtered_mdf['Дата регистрации'] <= dp) &
+                (
+                        (filtered_mdf["dateisnull"] == "-1")
+                        | (filtered_mdf['Дата регистрации'] >= ds)
+                        | (filtered_mdf['Дата закрытия'] >= ds)
+                )
+        )
 
-        # filtered_mdf = filtered_mdf[date_filter]
+        filtered_mdf = filtered_mdf[date_filter]
+        # date_filter = (
+        #                   ((filtered_mdf['Дата регистрации'] >= params["date_begin"]) &
+        #         (filtered_mdf['Дата регистрации'] <= params["date_end"]))
+        #                | ((filtered_mdf['Открыто на начало периода'] == 1)
+        #                ) & (filtered_mdf['Дата закрытия'] >= params["date_begin"]))
+
         # Классификация запросов
         filtered_mdf["П2С"] = "П"
         filtered_mdf.loc[filtered_mdf["Тип запроса"] == 'Нестандартное', "П2С"] = "СДОП"
         filtered_mdf.loc[filtered_mdf["Тип запроса"] == 'Стандартное без согласования', "П2С"] = "С"
-
-
 
         if params['support']:
             filtered_mdf = filtered_mdf[filtered_mdf["П2С"] == "П"]
@@ -185,7 +196,8 @@ def report_sla(**params):
             filtered_mdf = filtered_mdf[(filtered_mdf["П2С"] == "С") | (filtered_mdf["П2С"] == "СДОП")]
 
         # Фильтрация по датам
-
+        date_filter = ((filtered_mdf['Дата регистрации'] >= ds) &
+                                  (filtered_mdf['Дата регистрации'] <= dp))
         data_reg = filtered_mdf[date_filter]
 
         # Фильтрация просроченных запросов
@@ -209,10 +221,10 @@ def report_sla(**params):
         # Добавление поддержки SLA
         if params['support']:
             ss = sla_support(mdf=filtered_mdf, data_reg=data_reg, data_prosr=data_prosr, columns=columns,
-                             date_end=params["date_end"], date_begin=params["date_begin"])
+                             date_end=dp, date_begin=ds)
         else:
             ss = sla_sopr(mdf=filtered_mdf, data_reg=data_reg, data_prosr=data_prosr, columns=columns,
-                          date_end=params["date_end"], date_begin=params["date_begin"])
+                          date_end=dp, date_begin=ds)
 
         for key, val in ss.items():
             data.append((key, val))
@@ -228,7 +240,7 @@ def sla_support(**params):
     """
 
     par = get_data_sla(**params)
-    mdf = params['mdf']
+    mdf = params['data_reg']
 
     sum1 = par["sum1"].get('П', 0)
     sum2 = par["sum2"].get('П', 0)

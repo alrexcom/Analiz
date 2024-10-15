@@ -14,61 +14,89 @@ class LukoilQueries(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.geometry("500x600")
+        self.geometry("800x600")
         self.title("Добавление рабочих дней для получения FTE")
         self.hours_var = tk.IntVar()
         self.num_query = tk.StringVar()
+        self.num_task = tk.StringVar()
+        self.description = None
         self.result_label = None
 
         self.create_widgets()
 
         self.table_fte = Table(self)
         self.table_fte.pack(expand=True, fill='both')
+
         self.read_all_data()
 
     def create_widgets(self):
         frame_item = tk.Frame(self)
 
         tk.Label(frame_item, text='Заявка', bg="#333333", fg="white", font=("Arial", 16)).grid(row=1,
+
                                                                                                sticky="e")
-        tk.Entry(frame_item, textvariable=self.num_query).grid(row=1, column=1, pady=5, padx=10, sticky="ew")
+        txtnum_query = tk.Entry(frame_item, textvariable=self.num_query)
+        txtnum_query.grid(row=1, column=1, pady=5, padx=10, sticky="ew")
 
-        tk.Label(frame_item, text='Часы', bg="#333333", fg="white", font=("Arial", 16)).grid(row=2,
+        tk.Label(frame_item, text='Подзадача', bg="#333333", fg="white", font=("Arial", 16)).grid(row=2,
+
+                                                                                                  sticky="e")
+        txtnum_task = tk.Entry(frame_item, textvariable=self.num_task)
+        txtnum_task.grid(row=2, column=1, pady=5, padx=10, sticky="ew")
+
+        tk.Label(frame_item, text='Часы', bg="#333333", fg="white", font=("Arial", 16)).grid(row=3,
                                                                                              sticky="e")
-        tk.Entry(frame_item, textvariable=self.hours_var).grid(row=2, column=1, pady=5, padx=10, sticky="ew")
+        tk.Entry(frame_item, textvariable=self.hours_var).grid(row=3, column=1, pady=5, padx=10, sticky="ew")
 
-        tk.Label(frame_item, text='Дата регистрации', bg="#333333", fg="white", font=("Arial", 16)).grid(row=3,
+        tk.Label(frame_item, text='Дата регистрации', bg="#333333", fg="white", font=("Arial", 16)).grid(row=4,
                                                                                                          sticky="e")
 
         self.date_reg = DateEntry(master=frame_item, width=15, relief="solid", dateformat='%d-%m-%Y')
-        self.date_reg.grid(row=3, column=1, pady=10, sticky="ew", padx=10)
+        self.date_reg.grid(row=4, column=1, pady=10, sticky="ew", padx=10)
 
         # Место для отображения результата входа
         self.result_label = tk.Label(frame_item, bg="#333333", fg="blue", font=("Arial", 10))
-        self.result_label.grid(row=4, columnspan=2, sticky="ew")
+        self.result_label.grid(row=5, columnspan=2, sticky="ew")
+
+        self.description = tk.Text(frame_item, height=5)
+        self.description.grid(row=6, columnspan=2, sticky="ew")
 
         frame_buttons = tk.Frame(frame_item)
-
-        tk.Button(frame_buttons, text='Добавить запись',
+        tk.Button(frame_buttons, text=' Добавить',
                   command=self.save_days,
                   bg="#FF3399", fg="white", font=("Arial", 12)).pack(side=tk.LEFT, padx=10)
-        tk.Button(frame_buttons, text='Удалить запись',
+        tk.Button(frame_buttons, text=' Удалить ',
                   command=self.delete_rec,
                   bg="#FF3399", fg="white", font=("Arial", 12)).pack(side=tk.LEFT)
-        frame_buttons.grid(row=5, columnspan=2, pady=10)
+        frame_buttons.grid(row=7, columnspan=2, pady=10)
         frame_item.pack()
 
     def read_all_data(self):
+        # um_query, query_hours, date_registration, quoter, month_date, description
         self.table_fte.configure_columns(
-            [{'name': 'Заявка'}, {'name': 'Часы'}, {'name': 'Регистрация'}, {'name': 'Квартал'}])
+            [{'name': 'Заявка'}, {'name': 'Подзадача'}, {'name': 'Часы'}, {'name': 'Регистрация'}, {'name': 'Квартал'},
+             {'name': 'Месяц'},
+             {'name': 'Содержание'}])
         data = DB_MANAGER.read_all_lukoil()
         self.table_fte.populate_table(data)
+        # Привязываем обновление переменной num_query при выборе строки
+        self.table_fte.tree.bind('<<TreeviewSelect>>', self.update_num_query)
+
+    def update_num_query(self, event):
+        """Обновляем переменную self.num_query при выборе строки в таблице."""
+        cur_item = self.table_fte.tree.item(self.table_fte.tree.focus())  # Получаем данные выбранной строки
+        if cur_item:
+            values = cur_item.get('values', [])  # Получаем список значений
+            if values:
+                self.num_query.set(values[0])  # Устанавливаем значение первой колонки (Заявка)
+                self.num_task.set(values[1])  # Устанавливаем значение первой колонки (Заявка)
 
     def delete_rec(self):
         try:
             num_query = self.num_query.get()
             DB_MANAGER.delete_num_query(num_query)
             self.result_label.config(text=f"Запрос {num_query} удален")
+
             self.read_all_data()
         except Exception as e:
             messagebox.showinfo('Ошибка с бд', f"Данные не сохранены: {e}")
@@ -78,12 +106,27 @@ class LukoilQueries(tk.Toplevel):
             days = self.hours_var.get()
             if days == 0:
                 raise ValueError("Количество часов не может быть нулевым.")
-            date_registration = datetime.strptime(self.date_reg.entry.get(),'%d-%m-%Y')
+
+            date_registration = datetime.strptime(self.date_reg.entry.get(), '%d-%m-%Y')
             quoter = Univunit.get_first_day_of_quarter(date_registration)
-            num_query = self.num_query.get()
             query_hours = self.hours_var.get()
 
-            DB_MANAGER.insert_query([(num_query, query_hours, quoter, date_registration.strftime("%m.%Y"))])
+            #  Подзадача существует
+            if self.num_task.get():
+                first_input = 0
+                num_task = self.num_query.get()
+                num_query = self.num_task.get()
+                DB_MANAGER.set_sum_numbquery(num_task, query_hours)
+            else:
+                num_query = self.num_query.get()
+                num_task = '0'
+                first_input = query_hours
+
+            description = self.description.get("1.0", tk.END)
+
+            DB_MANAGER.insert_query(
+                [(num_query, query_hours, quoter, date_registration, date_registration.strftime("%m.%Y"),
+                  description.strip(), num_task, first_input)])
             self.result_label.config(text=f" Запрос {num_query} за {date_registration} добавлен")
             self.read_all_data()
         except ValueError as ve:
