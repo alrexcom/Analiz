@@ -6,7 +6,8 @@ import ttkbootstrap as ttk
 import pandas as pd
 import json
 
-from _tkinter import TclError
+
+# from _tkinter import TclError
 
 
 class Table(tk.Frame):
@@ -15,10 +16,12 @@ class Table(tk.Frame):
         self.scrollbar = ttk.Scrollbar(self)
         self.style = ttk.Style()
 
+        self._selected_value = None  # Атрибут для хранения выбранного значения
         # Устанавливаем высоту строки
         self.style.configure('Treeview', rowheight=25)
 
         self.tree = ttk.Treeview(self, yscrollcommand=self.scrollbar.set)
+        # self.tree.bind('<Button-1>', self.on_select)
         self.create_widgets()
 
     def create_widgets(self):
@@ -75,6 +78,8 @@ class Table(tk.Frame):
         # Устанавливаем цвета для четных и нечетных строк
         self.tree.tag_configure('evenrow', background='#DAEEF3')
         self.tree.tag_configure('oddrow', background='#B7DEE8')
+
+
 
 
 class Univunit:
@@ -158,7 +163,7 @@ class Univunit:
         return last_day_of_month.strftime(date_format)
 
     @staticmethod
-    def get_last_day_of_month(date_,date_format="%d-%m-%Y"):
+    def get_last_day_of_month(date_, date_format="%d-%m-%Y"):
         """
             Последнее число текущего месяца
         """
@@ -170,6 +175,8 @@ class Univunit:
         last_day_of_month = first_day_of_next_month.replace(day=1) - timedelta(days=1)
         # Возвращаем отформатированную дату
         return last_day_of_month.strftime(date_format)
+
+
 def calc_fte(**params):
     fte_on_month = params['fte_on_month']
     hours = params['hours']

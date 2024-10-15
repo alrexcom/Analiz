@@ -43,13 +43,18 @@ class DatabaseManager:
         :param date_month_name:
         :return:
         """
+        num_task = self.get_task_number(num_query)
         with sqlite3.connect(self.db_name) as conn:
             sql_delete_table = "DELETE FROM main.tab_lukoil where num_query = ?;"
             conn.execute(sql_delete_table, (num_query,))
 
+        self.set_sum_number_query_on_delete(num_query, num_task)
+
     def insert_query(self, list_params):
         with sqlite3.connect(self.db_name) as conn:
-            ins_sql = "INSERT INTO main.tab_lukoil (num_query, query_hours, quoter, date_registration) VALUES(?,?,?,?)"
+            ins_sql = (
+                "INSERT INTO main.tab_lukoil (num_query, query_hours, quoter, date_registration, month_date,"
+                "description, num_task, first_input) VALUES(?,?,?,?,?,?,?,?)")
 
             for par in list_params:
                 conn.execute(ins_sql, par)
@@ -96,8 +101,9 @@ class DatabaseManager:
 
     def read_all_lukoil(self):
         with sqlite3.connect(self.db_name) as conn:
-            sql_read_table = ("SELECT num_query,query_hours, date_registration, quoter "
-                              "FROM tab_lukoil order by quoter desc")
+            sql_read_table = (
+                "SELECT num_query, num_task, query_hours, date_registration, quoter,  month_date, description "
+                "FROM tab_lukoil order by quoter desc")
         cursor = conn.execute(sql_read_table)
         rows = cursor.fetchall()
         return rows
@@ -108,3 +114,48 @@ class DatabaseManager:
             cursor = conn.execute(sql_read_table)
             rows = cursor.fetchall()
             return rows
+
+    def get_summaryon_numbquery(self, num_query):
+        with sqlite3.connect(self.db_name) as conn:
+            # sql_read_table = ("SELECT sum(first_input) + sum(query_hours) "
+            #                   "FROM tab_lukoil "
+            #                   "WHERE num_query = ? or num_task = ?;")
+            sql_read_table = ("select sum(case when num_task= ? then query_hours else 0 end) "
+                              "+  sum(case when num_query= ? then first_input else 0 end) as qh_ "
+                              "from tab_lukoil t where  ? in (num_task,num_query)")
+
+            cursor = conn.execute(sql_read_table, (num_query, num_query, num_query,))
+            row = cursor.fetchone()
+            return row[0] if row else 0
+
+    def set_sum_numbquery(self, num_query, query_hours):
+        sum_query = query_hours + self.get_summaryon_numbquery(num_query)
+        with sqlite3.connect(self.db_name) as conn:
+            sql = "update main.tab_lukoil set query_hours = ? where num_query = ?;"
+            params = (sum_query, num_query)
+            conn.execute(sql, params)
+            conn.commit()
+
+    def get_task_number(self, num_query):
+        with sqlite3.connect(self.db_name) as conn:
+            sql_read_table = "SELECT num_task FROM tab_lukoil WHERE num_query=?"
+            cursor = conn.execute(sql_read_table, (num_query,))
+            row = cursor.fetchone()  # Получаем только одну строку
+        return row[0] if row else None
+
+    def set_sum_number_query_on_delete(self, num_query, num_task):
+
+        if num_task:
+            num_query = num_task
+
+        sum_query = self.get_summaryon_numbquery(num_query)
+
+        if sum_query:
+            with sqlite3.connect(self.db_name) as conn:
+                if num_task:
+                    sql = "update main.tab_lukoil set query_hours = ? where num_query = ?;"
+                else:
+                    sql = "update main.tab_lukoil set query_hours = first_input where num_query = ?;"
+                params = (sum_query, num_query)
+                conn.execute(sql, params)
+                conn.commit()
