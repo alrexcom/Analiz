@@ -484,19 +484,43 @@ def report_lukoil(**params):
 
 
 def get_data_lukoil(data_fromsql):
+    # if not data_fromsql:
+    #     print("Нет данных для обработки.")
+    #     return pd.DataFrame(columns=['Месяц', 'Неделя', 'Часы', 'fte'])  # Возвращаем пустой DataFrame
+
+    # Определяем колонки для DataFrame
     col = ['Заявка', 'Подзадача', 'Часы', 'Регистрация', 'Квартал', 'Месяц', 'Содержание']
     df = pd.DataFrame(data_fromsql, columns=col)
-    # Преобразуем столбец с датами в datetime формат
-    df['Регистрация'] = pd.to_datetime(df['Регистрация'])
-    df['fte'] = round(df['Часы'] / 164, 2)
-    # Найдем начало месяца для каждой даты
-    df['month_start'] = df['Регистрация'].values.astype('datetime64[M]')
 
-    # Рассчитаем, сколько недель прошло с начала месяца
+    # Преобразуем столбец с датами в datetime формат
+    df['Регистрация'] = pd.to_datetime(df['Регистрация'], errors='coerce')  # Обработка ошибок преобразования
+
+    # Проверка на наличие NaT после преобразования
+    if df['Регистрация'].isnull().any():
+        print("Некоторые даты были некорректными и будут проигнорированы.")
+        df = df.dropna(subset=['Регистрация'])
+
+    # Добавляем столбец fte
+    df['fte'] = df['Часы'] / 164
+
+    # Находим начало месяца для каждой даты
+    df['month_start'] = df['Регистрация'].dt.to_period('M').dt.to_timestamp()
+
+    # Рассчитываем, сколько недель прошло с начала месяца
     df['Неделя'] = ((df['Регистрация'] - df['month_start']).dt.days // 7) + 1
 
-    # Группируем по номеру недели в месяце и считаем среднее значение
-    weekly_summary = df.groupby(['Месяц', 'Неделя'])[['Часы', 'fte']].sum()
+    # Группируем по номеру месяца и неделе, суммируем Часы и fte
+    weekly_summary = df.groupby(['Месяц', 'Неделя'])[['Часы', 'fte']].sum().reset_index()
 
-    print(weekly_summary)
-    return weekly_summary
+    # Устанавливаем новый индекс для отображения
+    weekly_summary.set_index(['Месяц', 'Неделя'], inplace=True)
+
+    # print("Группированные данные:\n", weekly_summary)  # Отладочный вывод
+    weekly_summary['fte'] = weekly_summary['fte'].round(2)
+
+    values = []
+    for index, row in weekly_summary.iterrows():
+        month_week = index
+        values.append((month_week[0], month_week[1], row['Часы'], row['fte']))
+
+    return values

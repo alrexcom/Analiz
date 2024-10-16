@@ -20,7 +20,8 @@ class Table(tk.Frame):
         # Устанавливаем высоту строки
         self.style.configure('Treeview', rowheight=25)
 
-        self.tree = ttk.Treeview(self, yscrollcommand=self.scrollbar.set)
+        # , selectmode = tk.SINGLE
+        self.tree = ttk.Treeview(self, yscrollcommand=self.scrollbar.set, **kwargs)
         # self.tree.bind('<Button-1>', self.on_select)
         self.create_widgets()
 
@@ -78,8 +79,6 @@ class Table(tk.Frame):
         # Устанавливаем цвета для четных и нечетных строк
         self.tree.tag_configure('evenrow', background='#DAEEF3')
         self.tree.tag_configure('oddrow', background='#B7DEE8')
-
-
 
 
 class Univunit:

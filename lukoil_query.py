@@ -26,7 +26,7 @@ class LukoilQueries(tk.Toplevel):
 
         self.create_widgets()
 
-        self.table_fte = Table(self)
+        self.table_fte = Table(self, height=50)
         self.table_fte.pack(expand=True, fill='both')
 
         self.read_all_data()
