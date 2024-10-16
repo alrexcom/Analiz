@@ -7,7 +7,7 @@ from ttkbootstrap import DateEntry
 import lukoil_query as lk
 import jobdays as jdays
 import calc
-from reports import (get_data_report, names_reports)
+from reports import (get_data_report, names_reports, get_data_lukoil)
 from univunit import Table, Univunit
 import bd_unit
 
@@ -48,9 +48,13 @@ class App(tk.Tk):
         # self.table = Table(self)
         # self.table.pack(expand=True, fill='both')
 
+        # Запускаем главный цикл приложения
+        self.protocol("WM_DELETE_WINDOW", lambda: on_closing(self))  # Обработка закрытия окна
+        self.mainloop()
+
     def create_table(self):
         if not hasattr(self, 'table'):
-            self.table = Table(self)
+            self.table = Table(self, height=20)
             self.table.pack(expand=True, fill='both')
 
     def create_widgets(self):
@@ -123,12 +127,15 @@ class App(tk.Tk):
         self.set_fte_from_db()
 
     def cmb_function(self, event):
-        num_report = event.widget.current() + 1
-        if num_report == 1:
+        self.num_report = event.widget.current() + 1
+        if self.num_report == 1:
             self.toggle_fte_frame(True)
             self.set_fte_from_db()
         else:
             self.toggle_fte_frame(False)
+            if hasattr(self, 'tab_llk'):
+                if self.tab_llk.winfo_exists():
+                    self.tab_llk.destroy()
 
     def toggle_fte_frame(self, show):
         if show:
@@ -145,9 +152,26 @@ class App(tk.Tk):
         try:
             param = self.get_params(file_name)
             fr = get_data_report(**param)
+            if self.num_report == 1:
+                data_fromsql = DB_MANAGER.read_all_lukoil()
+                if data_fromsql:
+                    if not hasattr(self, 'tab_llk'):
+                        self.tab_llk = Table(self, height=5)
+                        self.tab_llk.pack(expand=False, fill=tk.BOTH)
+                    # Получаем данные и выводим в таблицу
+                    weekly_summary = get_data_lukoil(data_fromsql)
+
+                    self.tab_llk.configure_columns(
+                        [{'name': 'Месяц'}, {'name': 'Неделя'}, {'name': 'Часы'}, {'name': 'fte'}])
+                    self.tab_llk.populate_table(weekly_summary)
+            else:
+                if self.tab_llk.winfo_exists():
+                    self.tab_llk.destroy()
+
             self.create_table()
             self.table.configure_columns(fr['columns'])
             self.table.populate_table(fr['data'])
+
             self.update_window_size()
         except Exception as e:
             messagebox.showinfo("Ошибка!", f"Не смог обработать файл {file_name}: {e}")
@@ -183,6 +207,14 @@ class App(tk.Tk):
         total_width = sum(self.table.tree.column(col, 'width') for col in self.table.tree['columns'])
         row_count = len(self.table.tree.get_children())
         height = (row_count * 25) + 180
+
+        if self.num_report == 1:
+            row_count1 = len(self.tab_llk.tree.get_children())
+            height1 = (row_count1 * 25) + 18
+        else:
+            height1 = 0
+
+        height = height + height1
         # Обновляем размер окна
         self.geometry(f'{total_width}x{height}')
 
@@ -195,7 +227,7 @@ class App(tk.Tk):
 
         # Создание выпадающего меню "Файл"
         file_menu = tk.Menu(menubar, tearoff=0)
-        file_menu.add_command(label="Ввод трудозатрат Лукойл заявок", command=self.create_new_query)
+        file_menu.add_command(label="Лукойл заявки", command=self.create_new_query)
         file_menu.add_command(label="Ввести рабочие дни", command=self.create_new_window)
         file_menu.add_command(label="Калькулятор  FTE", command=self.create_fte_window)
         file_menu.add_separator()  # Добавление разделителя
@@ -213,6 +245,11 @@ class App(tk.Tk):
 
     def create_fte_window(self):
         calc.CalcApp(self)
+
+
+def on_closing(self):
+    if messagebox.askokcancel("Выход", "Вы действительно хотите выйти?"):
+        self.destroy()
 
 
 if __name__ == '__main__':
