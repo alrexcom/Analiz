@@ -34,31 +34,22 @@ class DatabaseManager:
         :return:
         """
         with sqlite3.connect(self.db_name) as conn:
-            sql_delete_table = "DELETE FROM main.tab_fte where MONTH_NAME = ?;"
+            sql_delete_table = ("DELETE FROM main.tab_fte "
+                                "where main.tab_fte.MONTH_NAME = ?;")
             conn.execute(sql_delete_table, (date_month_name,))
 
     def delete_num_query(self, num_query):
         """
         Удаление одной записи
-        :param date_month_name:
         :return:
         """
         num_task = self.get_task_number(num_query)
         with sqlite3.connect(self.db_name) as conn:
-            sql_delete_table = "DELETE FROM main.tab_lukoil where num_query = ?;"
+            sql_delete_table = ("DELETE FROM main.tab_lukoil  "
+                                "where main.tab_lukoil.num_query = ?;")
             conn.execute(sql_delete_table, (num_query,))
 
         self.set_sum_number_query_on_delete(num_query, num_task)
-
-    def insert_query(self, list_params):
-        with sqlite3.connect(self.db_name) as conn:
-            ins_sql = (
-                "INSERT INTO main.tab_lukoil (num_query, query_hours, quoter, date_registration, month_date,"
-                "description, num_task, first_input) VALUES(?,?,?,?,?,?,?,?)")
-
-            for par in list_params:
-                conn.execute(ins_sql, par)
-            conn.commit()
 
     def insert_data(self, list_params):
         """
@@ -67,7 +58,7 @@ class DatabaseManager:
         :return: None
         """
         with sqlite3.connect(self.db_name) as conn:
-            ins_sql = "INSERT INTO main.tab_fte (JOB_DAYS, MONTH_NAME) VALUES(?,?)"
+            ins_sql = "INSERT INTO tab_fte (JOB_DAYS, MONTH_NAME) VALUES(?,?)"
             for par in list_params:
                 conn.execute(ins_sql, par)
             conn.commit()
@@ -79,7 +70,9 @@ class DatabaseManager:
         first_data = current_date.replace(day=1).strftime('%Y-%m-%d')
 
         with sqlite3.connect(self.db_name) as conn:
-            sql_read_table = "SELECT FTE FROM tab_fte WHERE MONTH_NAME = ?;"
+            sql_read_table = ("SELECT FTE "
+                              "FROM main.tab_fte "
+                              "WHERE main.tab_fte.MONTH_NAME = ?;")
             cursor = conn.execute(sql_read_table, (first_data,))
             return cursor.fetchall()
 
@@ -103,7 +96,7 @@ class DatabaseManager:
         with sqlite3.connect(self.db_name) as conn:
             sql_read_table = (
                 "SELECT num_query, num_task, query_hours, date_registration, quoter,  month_date, description "
-                "FROM tab_lukoil order by quoter desc")
+                "FROM tab_lukoil order by  case when num_task=0 then num_query else num_task end,  date_registration")
         cursor = conn.execute(sql_read_table)
         rows = cursor.fetchall()
         return rows
@@ -117,9 +110,6 @@ class DatabaseManager:
 
     def get_summaryon_numbquery(self, num_query):
         with sqlite3.connect(self.db_name) as conn:
-            # sql_read_table = ("SELECT sum(first_input) + sum(query_hours) "
-            #                   "FROM tab_lukoil "
-            #                   "WHERE num_query = ? or num_task = ?;")
             sql_read_table = ("select sum(case when num_task= ? then query_hours else 0 end) "
                               "+  sum(case when num_query= ? then first_input else 0 end) as qh_ "
                               "from tab_lukoil t where  ? in (num_task,num_query)")
@@ -160,3 +150,63 @@ class DatabaseManager:
                 conn.execute(sql, params)
                 conn.commit()
 
+    def update_lukoil(self, param_list):
+        """
+        Динамический sql
+        :param_list param_list:
+        :return:
+        """
+        params = {}
+        for param in param_list:
+            params.update(param)
+
+            # Проверяем, что 'num_query' передан, так как он нужен для условия WHERE
+        if 'num_query' not in params:
+            raise ValueError("Необходимо передать 'num_query' для обновления записи.")
+
+            # Извлекаем num_query для условия WHERE
+        num_query = params.pop('num_query')
+
+        # Подготовка динамических полей для обновления и их значений
+        set_clauses = []
+        values = []
+
+        for key, value in params.items():
+            set_clauses.append(f"{key} = ?")  # Используем плейсхолдеры для безопасности
+            values.append(value)
+
+        # Формирование SQL-запроса
+        sql_update_lukoil = f"UPDATE tab_lukoil SET {', '.join(set_clauses)} WHERE num_query = ?;"
+
+        # Добавляем num_query в список значений для условия WHERE
+        values.append(num_query)
+
+        # Выполнение запроса (предполагается использование подключения к базе данных, например, sqlite3)
+        with sqlite3.connect(self.db_name) as conn:
+            conn.execute(sql_update_lukoil, values)
+            conn.commit()
+
+    def insert_lukoil(self, param_list):
+        # Создаем пустой словарь для объединения всех параметров
+        params = {}
+
+        # Обрабатываем список словарей и добавляем ключи-значения в общий словарь params
+        for param in param_list:
+            params.update(param)
+
+        # Если нет параметров, нет смысла выполнять запрос
+        if not params:
+            raise ValueError("Параметры для вставки должны быть переданы.")
+
+        # Извлечение ключей и значений из словаря params
+        columns = ', '.join(params.keys())  # Имена колонок
+        placeholders = ', '.join(['?' for _ in params])  # Плейсхолдеры для значений
+        values = list(params.values())  # Список значений для вставки
+
+        # Формирование SQL-запроса для вставки
+        sql_insert_lukoil = f"INSERT INTO tab_lukoil ({columns}) VALUES ({placeholders});"
+
+        # Выполнение запроса (предполагается использование подключения к базе данных, например, sqlite3)
+        with sqlite3.connect(self.db_name) as conn:
+            conn.execute(sql_insert_lukoil, values)
+            conn.commit()

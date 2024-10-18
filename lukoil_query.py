@@ -68,13 +68,59 @@ class LukoilQueries(tk.Toplevel):
                   command=self.save_days,
                   bg="#FF3399", fg="white", font=("Arial", 12)).pack(side=tk.LEFT, padx=10)
         tk.Button(frame_buttons, text=' Обновить ',
-                  # command=self.save_days,
+                  command=self.update_llk,
                   bg="#FF3399", fg="white", font=("Arial", 12)).pack(side=tk.LEFT, padx=10)
         tk.Button(frame_buttons, text=' Удалить ',
                   command=self.delete_rec,
                   bg="red", fg="white", font=("Arial", 12)).pack(side=tk.LEFT)
         frame_buttons.grid(row=7, columnspan=2, pady=10)
         frame_item.pack()
+
+    @property
+    def read_all_params(self):
+        days = self.hours_var.get()
+        if days == 0:
+            raise ValueError("Количество часов не может быть нулевым.")
+        date_registration = datetime.strptime(self.date_reg.entry.get(), '%d-%m-%Y')
+        # date_registration = self.date_reg.entry.get()
+        month_date = date_registration.strftime("%m.%Y")
+        quoter = Univunit.get_first_day_of_quarter(date_registration)
+        query_hours = self.hours_var.get()
+        num_task_ = self.num_task.get()
+        # Если подзадача отсутствует или равна "0"
+        if num_task_ == '' or num_task_ == '0':
+            num_query = self.num_query.get()
+            num_task = '0'
+            first_input = query_hours
+        else:
+            first_input = 0
+            num_task = self.num_query.get()
+            num_query = self.num_task.get()
+            # sum_query = query_hours + DB_MANAGER.get_summaryon_numbquery(num_task)
+            DB_MANAGER.set_sum_numbquery(num_task, query_hours)
+
+        description = self.description.get("1.0", tk.END).strip()  # Убираем лишние пробелы
+
+        params = [
+            {'num_query': num_query}, {'query_hours': query_hours}, {'quoter': quoter},
+            {'num_task': num_task}, {'first_input': first_input}, {'month_date': month_date},
+            {'date_registration': date_registration},
+        ]
+        if description:
+            params.append({'description': description})
+
+        return params
+
+    def update_llk(self):
+        try:
+            params = self.read_all_params
+            DB_MANAGER.update_lukoil(params)
+            self.result_label.config(text=f" данные запроса {params[0]['num_query']} изменены")
+            self.read_all_data()
+        except ValueError as ve:
+            messagebox.showinfo('Ошибка ввода', str(ve))
+        except Exception as e:
+            messagebox.showinfo('Ошибка с бд', f"Данные не сохранены: {e}")
 
     def read_all_data(self):
         # um_query, query_hours, date_registration, quoter, month_date, description
@@ -83,14 +129,11 @@ class LukoilQueries(tk.Toplevel):
              {'name': 'Месяц'},
              {'name': 'Содержание'}])
         data = DB_MANAGER.read_all_lukoil()
-        df=get_data_lukoil(data)
+        df = get_data_lukoil(data)
 
         self.table_fte.populate_table(data)
         # Привязываем обновление переменной num_query при выборе строки
         self.table_fte.tree.bind('<<TreeviewSelect>>', self.update_num_query)
-
-
-
 
     def update_num_query(self, event):
         """Обновляем переменную self.num_query при выборе строки в таблице."""
@@ -119,27 +162,9 @@ class LukoilQueries(tk.Toplevel):
             if days == 0:
                 raise ValueError("Количество часов не может быть нулевым.")
 
-            date_registration = datetime.strptime(self.date_reg.entry.get(), '%d-%m-%Y')
-            quoter = Univunit.get_first_day_of_quarter(date_registration)
-            query_hours = self.hours_var.get()
-
-            #  Подзадача существует
-            if self.num_task.get():
-                first_input = 0
-                num_task = self.num_query.get()
-                num_query = self.num_task.get()
-                DB_MANAGER.set_sum_numbquery(num_task, query_hours)
-            else:
-                num_query = self.num_query.get()
-                num_task = '0'
-                first_input = query_hours
-
-            description = self.description.get("1.0", tk.END)
-
-            DB_MANAGER.insert_query(
-                [(num_query, query_hours, quoter, date_registration, date_registration.strftime("%m.%Y"),
-                  description.strip(), num_task, first_input)])
-            self.result_label.config(text=f" Запрос {num_query} за {date_registration} добавлен")
+            params = self.read_all_params
+            DB_MANAGER.insert_lukoil(params)
+            self.result_label.config(text=f" Запрос {params[0]['num_query']} добавлен")
             self.read_all_data()
         except ValueError as ve:
             messagebox.showinfo('Ошибка ввода', str(ve))
