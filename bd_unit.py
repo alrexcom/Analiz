@@ -1,31 +1,26 @@
 from datetime import datetime
 import sqlite3
 from pathlib import Path
-
+import logging
 import pandas as pd
 
 DB_NAME = "test.db"
+
+logging.basicConfig(
+    filename='app.log',
+    filemode='w',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO,
+    encoding='utf-8'
+)
+
+logged = False
 
 
 class DatabaseManager:
     def __init__(self):
 
         self.db_name = Path('.').absolute().joinpath('BD').joinpath(DB_NAME)
-
-    # def create_table(self):
-    #     with sqlite3.connect(self.db_name) as conn:
-    #         drop_table = "DROP TABLE IF EXISTS tab_fte;"
-    #         conn.execute(drop_table)
-    #         sql_request = """
-    #                         CREATE TABLE tab_fte (
-    #                             ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    #                             JOB_DAYS INTEGER NOT NULL,
-    #                             MONTH_NAME DATE NOT NULL
-    #                                 CONSTRAINT tab_fte_pk UNIQUE ON CONFLICT ROLLBACK,
-    #                             FTE INTEGER GENERATED ALWAYS AS (JOB_DAYS * 8) VIRTUAL
-    #                         );
-    #                       """
-    #         conn.execute(sql_request)
 
     def delete_record(self, date_month_name):
         """
@@ -196,6 +191,8 @@ class DatabaseManager:
 
         # Если нет параметров, нет смысла выполнять запрос
         if not params:
+            if logged:
+                logging.error(f"Параметры для вставки должны быть переданы.")
             raise ValueError("Параметры для вставки должны быть переданы.")
 
         # Извлечение ключей и значений из словаря params
@@ -205,8 +202,16 @@ class DatabaseManager:
 
         # Формирование SQL-запроса для вставки
         sql_insert_lukoil = f"INSERT INTO tab_lukoil ({columns}) VALUES ({placeholders});"
+        if logged:
+            logging.info(f"Executing SQL: {sql_insert_lukoil} with values {values}")
 
         # Выполнение запроса (предполагается использование подключения к базе данных, например, sqlite3)
-        with sqlite3.connect(self.db_name) as conn:
-            conn.execute(sql_insert_lukoil, values)
-            conn.commit()
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                conn.execute(sql_insert_lukoil, values)
+                conn.commit()
+        except sqlite3.DatabaseError as e:
+            if logged:
+                logging.error(f"Database error occurred: {e}")
+            raise e
+        return
