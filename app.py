@@ -11,6 +11,7 @@ from reports import (get_data_report, names_reports, get_data_lukoil)
 from univunit import Table, Univunit
 import bd_unit
 
+FTE_MIDDLE = 164
 DB_MANAGER = bd_unit.DatabaseManager()
 
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
@@ -165,8 +166,9 @@ class App(tk.Tk):
                         [{'name': 'Месяц'}, {'name': 'Неделя'}, {'name': 'Часы'}, {'name': 'fte'}])
                     self.tab_llk.populate_table(weekly_summary)
             else:
-                if self.tab_llk.winfo_exists():
-                    self.tab_llk.destroy()
+                if hasattr(self, 'tab_llk'):
+                    if self.tab_llk.winfo_exists():
+                        self.tab_llk.destroy()
 
             self.create_table()
             self.table.configure_columns(fr['columns'])
@@ -183,24 +185,20 @@ class App(tk.Tk):
         self.fte.config(state=tk.NORMAL)
         self.fte.delete(0, tk.END)
         data_po = self.dp.entry.get()
+
         if self.middle_fte.get() == 1:
-            self.fte.insert(0, '164')
+            self.fte.insert(0, str(FTE_MIDDLE))
             self.fte.config(state='readonly = FALSE')
         else:
-            self.fte.insert(0, DB_MANAGER.read_one_rec(data_po))
+            fte = DB_MANAGER.read_one_rec(data_po)
+            if not fte:
+                fte = FTE_MIDDLE
+            self.fte.insert(0, fte)
             self.fte.config(state='readonly')
 
     def get_params(self, file_name):
-        #
-        # print(fte)
-        return {
-            'filename': file_name,
-            'name_report': self.name_report.get(),
-            'fte': self.one_hour_fte.get(),
-            'middle_fte': self.middle_fte.get(),
-            'date_end': self.dp.entry.get(),
-            'date_begin': self.ds.entry.get(),
-        }
+        return dict(filename=file_name, name_report=self.name_report.get(), fte=self.one_hour_fte.get(),
+                    middle_fte=self.middle_fte.get(), date_end=self.dp.entry.get(), date_begin=self.ds.entry.get())
 
     def update_window_size(self):
         # Рассчитываем общую ширину столбцов
