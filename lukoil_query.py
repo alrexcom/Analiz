@@ -7,7 +7,7 @@ from ttkbootstrap import DateEntry
 
 from univunit import Table, Univunit
 
-from reports import get_data_lukoil
+# from reports import get_data_lukoil
 import bd_unit
 DB_MANAGER = bd_unit.DatabaseManager()
 
@@ -129,7 +129,7 @@ class LukoilQueries(tk.Toplevel):
              {'name': 'Месяц'},
              {'name': 'Содержание'}])
         data = DB_MANAGER.read_all_lukoil()
-        df = get_data_lukoil(data)
+        # df = get_data_lukoil(data)
 
         self.table_fte.populate_table(data)
         # Привязываем обновление переменной num_query при выборе строки

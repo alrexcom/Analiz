@@ -179,7 +179,7 @@ class Univunit:
 def calc_fte(**params):
     fte_on_month = params['fte_on_month']
     hours = params['hours']
-    return round(hours / fte_on_month, 2)
+    return round(hours / fte_on_month, 3)
 
 
 def calc_hours(**params):

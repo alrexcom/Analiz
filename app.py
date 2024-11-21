@@ -11,9 +11,9 @@ from reports import (get_data_report, names_reports, get_data_lukoil)
 from univunit import Table, Univunit
 import bd_unit
 
-FTE_MIDDLE = 164
-DB_MANAGER = bd_unit.DatabaseManager()
 
+DB_MANAGER = bd_unit.DatabaseManager()
+FTE_MIDDLE = DB_MANAGER.get_middle_fte()
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
           'yeti', 'pulse', 'united', 'morph', 'journal', 'darkly',
           'superhero', 'solar', 'cyborg', 'vapor', 'simplex', 'cerculean']
@@ -192,7 +192,7 @@ class App(tk.Tk):
         else:
             fte = DB_MANAGER.read_one_rec(data_po)
             if not fte:
-                fte = FTE_MIDDLE
+                fte = DB_MANAGER.get_middle_fte()
             self.fte.insert(0, fte)
             self.fte.config(state='readonly')
 

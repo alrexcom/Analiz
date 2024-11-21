@@ -16,9 +16,10 @@ class JobDaysApp(tk.Toplevel):
         self.geometry("500x400")
         self.title("Добавление рабочих дней для получения FTE")
         self.days_var = tk.IntVar()
+        self.middle_days_var = tk.StringVar()
 
         self.result_label = None
-
+        self.mdf = None
         self.create_widgets()
 
         self.table_fte = Table(self)
@@ -28,18 +29,28 @@ class JobDaysApp(tk.Toplevel):
     def create_widgets(self):
         frame_item = tk.Frame(self)
 
-        tk.Label(frame_item, text='Число рабочих дней', bg="#333333", fg="white", font=("Arial", 16)).grid(row=1,
-                                                                                                           sticky="e")
-        tk.Entry(frame_item, textvariable=self.days_var).grid(row=1, column=1, pady=20, padx=10, sticky="ew")
+        tk.Label(frame_item, text='Среднее число рабочих дней', bg="#333333", fg="white", font=("Arial", 12)).grid(
+            row=1,
+            sticky="e")
+        self.mdf = tk.Entry(frame_item, textvariable=self.middle_days_var)
+        self.mdf.grid(row=1, column=1, pady=20, padx=10, sticky="ew")
 
-        tk.Label(frame_item, text='Месяц из даты', bg="#333333", fg="white", font=("Arial", 16)).grid(row=2, sticky="e")
+        tk.Button(frame_item, text='Сохранить',
+                  command=self.save_middle_days,
+                  bg="#FF3399", fg="white", font=("Arial", 12)).grid(row=1, column=2, pady=20, padx=10, sticky="ew")
+
+        tk.Label(frame_item, text='Число рабочих дней', bg="#333333", fg="white", font=("Arial", 16)).grid(row=2,
+                                                                                                           sticky="e")
+        tk.Entry(frame_item, textvariable=self.days_var).grid(row=2, column=1, pady=20, padx=10, sticky="ew")
+
+        tk.Label(frame_item, text='Месяц из даты', bg="#333333", fg="white", font=("Arial", 16)).grid(row=3, sticky="e")
 
         self.month_year = DateEntry(master=frame_item, width=15, relief="solid", dateformat='%d-%m-%Y')
-        self.month_year.grid(row=2, column=1, pady=10, sticky="ew", padx=10)
+        self.month_year.grid(row=3, column=1, pady=10, sticky="ew", padx=10)
 
         # Место для отображения результата входа
         self.result_label = tk.Label(frame_item, bg="#333333", fg="blue", font=("Arial", 10))
-        self.result_label.grid(row=3, columnspan=2, sticky="ew")
+        self.result_label.grid(row=4, columnspan=2, sticky="ew")
 
         frame_buttons = tk.Frame(frame_item)
 
@@ -49,7 +60,7 @@ class JobDaysApp(tk.Toplevel):
         tk.Button(frame_buttons, text='Удалить запись',
                   command=self.delete_rec,
                   bg="#FF3399", fg="white", font=("Arial", 12)).pack(side=tk.LEFT)
-        frame_buttons.grid(row=4, columnspan=2, pady=10)
+        frame_buttons.grid(row=5, columnspan=2, pady=10)
         frame_item.pack()
 
     def add_month_name_first(self, tuples_list):
@@ -64,6 +75,14 @@ class JobDaysApp(tk.Toplevel):
         return updated_list
 
     def read_all_data(self):
+
+        self.mdf.config(state=tk.NORMAL)
+        self.mdf.delete(0, tk.END)
+
+        middle_days_var = DB_MANAGER.get_middle_fte()
+        if middle_days_var != '0':
+            self.mdf.insert(0, str(middle_days_var))
+
         self.table_fte.configure_columns([{'name': 'Месяц'}, {'name': 'Дней'}, {'name': 'Период'}, {'name': 'FTE'}])
         data = self.add_month_name_first(DB_MANAGER.read_all_table())
         # data.append(('Month':data.strftime('%B')))
@@ -85,10 +104,23 @@ class JobDaysApp(tk.Toplevel):
             days = self.days_var.get()
             if days == 0:
                 raise ValueError("Количество дней не может быть нулевым.")
-            date_in = datetime.strptime(self.month_year.entry.get(),'%d-%m-%Y')
+            date_in = datetime.strptime(self.month_year.entry.get(), '%d-%m-%Y')
             date_in = Univunit.first_date_of_month(date_in)
             DB_MANAGER.insert_data([(self.days_var.get(), date_in)])
             self.result_label.config(text=f"{date_in}, число:{self.days_var.get()} добавлены")
+            self.read_all_data()
+        except ValueError as ve:
+            messagebox.showinfo('Ошибка ввода', str(ve))
+        except Exception as e:
+            messagebox.showinfo('Ошибка с бд', f"Данные не сохранены: {e}")
+
+    def save_middle_days(self):
+        try:
+            days = self.middle_days_var.get()
+            if days == 0:
+                days = 164
+            DB_MANAGER.save_middle_fte(days)
+            self.result_label.config(text=f"Среднее:{days} добавлено")
             self.read_all_data()
         except ValueError as ve:
             messagebox.showinfo('Ошибка ввода', str(ve))

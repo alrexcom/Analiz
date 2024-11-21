@@ -215,3 +215,21 @@ class DatabaseManager:
                 logging.error(f"Database error occurred: {e}")
             raise e
         return
+
+    def get_middle_fte(self):
+        with sqlite3.connect(self.db_name) as conn:
+            sql_read_table = "SELECT VALUE_STR FROM tab_settings where PROPERTY ='middle_fte' "
+            cursor = conn.execute(sql_read_table)
+            row = cursor.fetchone()  # Получаем только одну строку
+        return row[0] if row else '0'
+
+    def save_middle_fte(self, middle_fte):
+        fte = self.get_middle_fte()
+        with sqlite3.connect(self.db_name) as conn:
+            if fte == '0':
+                sql = "INSERT INTO tab_settings (PROPERTY,VALUE_STR) VALUES(?,?)"
+                conn.execute(sql, ('middle_fte', middle_fte))
+            else:
+                sql = "update tab_settings set VALUE_STR= ? where PROPERTY=?"
+                conn.execute(sql, (middle_fte, 'middle_fte'))
+            conn.commit()
