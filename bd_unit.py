@@ -3,6 +3,7 @@ import sqlite3
 from pathlib import Path
 import logging
 import pandas as pd
+from univunit import (format_date)
 
 DB_NAME = "test.db"
 
@@ -71,30 +72,79 @@ class DatabaseManager:
             cursor = conn.execute(sql_read_table, (first_data,))
             return cursor.fetchall()
 
-    def read_sum_lukoil(self, ds, dp):
+    def read_sum_lukoil(self, **param):
         project = 'С0134-КИС "Производственный учет и отчетность"'
         user = 'Тапехин Алексей Александрович'
-        with sqlite3.connect(self.db_name) as conn:
-            #  = , [Пользователь] = ,
-            sql_read_table = (
-                f"SELECT '{project}' as [Проект], '{user}' as [Пользователь], month_date as [Дата], "
-                f"sum(query_hours) as [Лукойл, час.] , count(*) as [Заявок лукойл] "
-                f"FROM tab_lukoil "
-                f"where date_registration >= ? and date_registration <= ?  and first_input > 0 "
-                f"group by month_date")
-        cursor = conn.execute(sql_read_table, (ds, dp))
-        rows = cursor.fetchall()
-        return pd.DataFrame(rows, columns=['Проект', 'Пользователь', 'Дата', 'Лукойл, час.', 'Заявок лукойл'])
-        # return rows
+        if param:
+            ss = "where date_registration >= ? and date_registration <= ?"
+        else:
+            ss = ""
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                sql_read_table = (f"""select '{project}' as [Проект], '{user}' as [Пользователь], month_date as [Дата], 
+                                        sum(sum(case when first_input >0
+                                            then first_input
+                                            else  query_hours
+                                                end)) over (partition by t.num_query, month_date) as [Лукойл, час.],
+                                        count(1) as [Заявок лукойл]                                    
+                                    from tab_lukoil t
+                                    {ss}
+                                    group by   month_date""")
 
-    def read_all_lukoil(self):
-        with sqlite3.connect(self.db_name) as conn:
-            sql_read_table = (
-                "SELECT num_query, num_task, query_hours, date_registration, quoter,  month_date, description "
-                "FROM tab_lukoil order by  case when num_task=0 then num_query else num_task end,  date_registration")
-        cursor = conn.execute(sql_read_table)
-        rows = cursor.fetchall()
-        return rows
+            if param:
+                par = (
+                    format_date(param['date_begin']),
+                    format_date(param['date_end'])
+                )
+                cursor = conn.execute(sql_read_table, par)
+            else:
+                cursor = conn.execute(sql_read_table)
+            rows = cursor.fetchall()
+            return pd.DataFrame(rows, columns=['Проект', 'Пользователь', 'Дата', 'Лукойл, час.', 'Заявок лукойл'])
+        except sqlite3.DatabaseError as e:
+            print(f"Database error: {e}")
+
+        #  --and first_input > 0
+
+    def read_all_lukoil(self, **param):
+        if param:
+            ss = "where date_registration >= ? and date_registration <= ?"
+        else:
+            ss = ""
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                sql_read_table = (
+                    f"""
+                    SELECT floor(CASE
+                     WHEN ((julianday(date_registration) - julianday(DATE(date_registration, 'start of month'))) / 7) + 1 >=
+                          5 THEN 4
+                     ELSE ((julianday(date_registration) - julianday(DATE(date_registration, 'start of month'))) / 7) + 1
+                        END)                                                                                        AS [Неделя],
+                           row_number() over (partition by case when num_task = 0 then num_query else num_task end) as pp,
+                           num_query,
+                           num_task,
+                           query_hours,
+                           date_registration,
+                           quoter,
+                           month_date,
+                           description                
+                    FROM tab_lukoil               
+                        {ss}                       
+                    order by case when num_task = 0 then num_query else num_task end, date_registration
+                    """
+                )
+            if param:
+                par = (
+                    format_date(param['date_begin']),
+                    format_date(param['date_end'])
+                )
+                cursor = conn.execute(sql_read_table, par)
+            else:
+                cursor = conn.execute(sql_read_table)
+            rows = cursor.fetchall()
+            return rows
+        except sqlite3.DatabaseError as e:
+            print(f"Database error: {e}")
 
     def read_all_table(self):
         with sqlite3.connect(self.db_name) as conn:

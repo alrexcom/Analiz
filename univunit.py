@@ -196,3 +196,25 @@ def calc_hours(**params):
 def save_to_json(data, filename):
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+
+
+def get_week_of_month(date_):
+    first_day_of_month = date_.replace(day=1)
+    dom = date_.day
+    adjusted_dom = dom + first_day_of_month.weekday()  # Сдвиг по первому дню недели
+    return (adjusted_dom - 1) // 7 + 1
+
+
+def format_date(date_str):
+    """Преобразует строку даты в формат YYYY-MM-DD."""
+    try:
+        # Пробуем формат 'YYYY-MM-DD'
+        out_date = datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        try:
+            # Пробуем формат 'DD-MM-YYYY'
+            out_date = datetime.strptime(date_str, '%d-%m-%Y')
+        except ValueError:
+            # Если оба формата не подходят, выбрасываем исключение
+            raise ValueError(f"Неправильный формат даты: {date_str}")
+    return out_date.strftime('%Y-%m-%d')

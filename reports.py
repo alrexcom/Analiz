@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from univunit import (Univunit, pd)
+import univunit
+from univunit import (Univunit, pd, get_week_of_month)
 # , save_to_json)
 import bd_unit
 
@@ -81,7 +82,7 @@ def report1(**param):
 
     df = param['df']
 
-    df_lukoil = DB_MANAGER.read_sum_lukoil(ds=param['date_begin'], dp=param['date_end'])
+    df_lukoil = DB_MANAGER.read_sum_lukoil(**param)
 
     date_begin = datetime.strptime(param['date_begin'], '%Y-%m-%d').strftime('%m.%Y')
     date_end = datetime.strptime(param['date_end'], '%Y-%m-%d').strftime('%m.%Y')
@@ -108,7 +109,10 @@ def report1(**param):
     fact_fte = round((fr[fact_sum] / fte), 3)
 
     fr['Факт, FTE'] = fact_fte
-    fr['Лукойл, FTE'] = round((fr['Лукойл, час.'] / fte), 2)
+    fr['Лукойл, FTE'] = round((fr['Лукойл, час.'] / fte), 3)
+    fr['DeltMes FTE'] = round(fact_fte - fr['Лукойл, FTE'], 3)
+    # fr['DeltНед FTE'] = round(hours_plan_week/fte,3) - fr['Лукойл, FTE']
+
     hours_remain = round(hours_plan - fr[fact_sum], 2)
     fr['Остаток часов'] = hours_remain
     fr['Остаток FTE'] = round((fr['Остаток часов'][fr['Остаток часов'] > 0] / fte), 2)
@@ -119,7 +123,7 @@ def report1(**param):
     fr = fr.reindex(
         columns=['Дата', 'Проект', 'Пользователь', 'План ч. мес.', 'План ч. нед.', 'Заявок лукойл', 'Лукойл, час.',
                  'Фактические трудозатраты (час.) (Сумма)',
-                 'План, FTE', 'Лукойл, FTE', 'Факт, FTE', 'Остаток часов', 'Остаток FTE'])
+                 'План, FTE', 'Лукойл, FTE', 'Факт, FTE', 'DeltMes FTE', 'Остаток часов', 'Остаток FTE'])
     # Преобразование DataFrame в записи NumPy
     data = fr.to_records(index=False)
     columns = [{"name": col} for col in fr.columns]
@@ -241,15 +245,13 @@ def report_lukoil(**params):
     return {'columns': columns, 'data': data.to_records(index=False)}
 
 
-def get_data_lukoil(data_fromsql):
-    # if not data_fromsql:
-    #     print("Нет данных для обработки.")
-    #     return pd.DataFrame(columns=['Месяц', 'Неделя', 'Часы', 'fte'])  # Возвращаем пустой DataFrame
-
+def get_data_lukoil(**param):
     # Определяем колонки для DataFrame
-    col = ['Заявка', 'Подзадача', 'Часы', 'Регистрация', 'Квартал', 'Месяц', 'Содержание']
-    df = pd.DataFrame(data_fromsql, columns=col)
+    data_fromsql=param['data_fromsql']
 
+    col = ['Неделя', 'п/п', 'Заявка', 'Подзадача', 'Часы', 'Регистрация', 'Квартал', 'Месяц', 'Содержание']
+    df = pd.DataFrame(data_fromsql, columns=col)
+    # df.drop('Неделя', axis=1, inplace=True)
     # Преобразуем столбец с датами в datetime формат
     df['Регистрация'] = pd.to_datetime(df['Регистрация'], errors='coerce')  # Обработка ошибок преобразования
 
@@ -260,13 +262,17 @@ def get_data_lukoil(data_fromsql):
     fte = DB_MANAGER.get_middle_fte()
     # Добавляем столбец fte
     if not fte == '0':
-        df['fte'] = df['Часы'] / int(fte)
+        df['fte'] = round(df['Часы'] / int(fte), 3)
 
+    df['Неделя'] = round(df['Неделя'], 0)
     # Находим начало месяца для каждой даты
-    df['month_start'] = df['Регистрация'].dt.to_period('M').dt.to_timestamp()
+    # df['month_start'] = df['Регистрация'].dt.to_period('M').dt.to_timestamp()
 
     # Рассчитываем, сколько недель прошло с начала месяца
-    df['Неделя'] = ((df['Регистрация'] - df['month_start']).dt.days // 7) + 1
+    # df['Неделя'] = ((df['Регистрация'] - df['month_start']).dt.days // 7) + 1
+
+    # Корректируем номер недели, чтобы он не превышал максимум
+    # df['Неделя'] = df['Неделя'].clip(upper=5)
 
     # Группируем по номеру месяца и неделе, суммируем Часы и fte
     weekly_summary = df.groupby(['Месяц', 'Неделя'])[['Часы', 'fte']].sum().reset_index()

@@ -1,6 +1,7 @@
 import tkinter as tk
 import univunit
-
+import bd_unit
+DB_MANAGER = bd_unit.DatabaseManager()
 
 class CalcApp(tk.Toplevel):
     def __init__(self, parent):
@@ -28,10 +29,10 @@ class CalcApp(tk.Toplevel):
 
         self.Fte_month = tk.Entry(frame_item, textvariable=self.fte_on_month)
         self.Fte_month.grid(row=2, column=1, pady=5, padx=10, sticky="ew")
-
+        fte = DB_MANAGER.get_middle_fte()
         self.Fte_month.config(state=tk.NORMAL)
         self.Fte_month.delete(0, tk.END)
-        self.Fte_month.insert(0, '164')
+        self.Fte_month.insert(0, fte)
 
         tk.Button(frame_item, text='Посчитать FTE',
                   command=self.get_fte,

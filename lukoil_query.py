@@ -124,8 +124,9 @@ class LukoilQueries(tk.Toplevel):
 
     def read_all_data(self):
         # um_query, query_hours, date_registration, quoter, month_date, description
+        DB_MANAGER.read_sum_lukoil()
         self.table_fte.configure_columns(
-            [{'name': 'Заявка'}, {'name': 'Подзадача'}, {'name': 'Часы'}, {'name': 'Регистрация'}, {'name': 'Квартал'},
+            [{'name': 'П/П'},{'name': 'Заявка'}, {'name': 'Подзадача'}, {'name': 'Часы'}, {'name': 'Регистрация'}, {'name': 'Квартал'},
              {'name': 'Месяц'},
              {'name': 'Содержание'}])
         data = DB_MANAGER.read_all_lukoil()
@@ -142,9 +143,9 @@ class LukoilQueries(tk.Toplevel):
         if cur_item:
             values = cur_item.get('values', [])  # Получаем список значений
             if values:
-                self.num_query.set(values[0])  # Устанавливаем значение первой колонки (Заявка)
-                self.num_task.set(values[1])  # Устанавливаем значение первой колонки (Заявка)
-                self.description.insert(tk.END, values[6])
+                self.num_query.set(values[1])  # Устанавливаем значение первой колонки (Заявка)
+                self.num_task.set(values[2])  # Устанавливаем значение первой колонки (Заявка)
+                self.description.insert(tk.END, values[7])
 
     def delete_rec(self):
         try:

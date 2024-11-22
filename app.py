@@ -154,13 +154,15 @@ class App(tk.Tk):
             param = self.get_params(file_name)
             fr = get_data_report(**param)
             if self.num_report == 1:
-                data_fromsql = DB_MANAGER.read_all_lukoil()
+
+                data_fromsql = DB_MANAGER.read_all_lukoil(**param)
                 if data_fromsql:
                     if not hasattr(self, 'tab_llk'):
                         self.tab_llk = Table(self, height=5)
                         self.tab_llk.pack(expand=False, fill=tk.BOTH)
                     # Получаем данные и выводим в таблицу
-                    weekly_summary = get_data_lukoil(data_fromsql)
+                    param['data_fromsql']=data_fromsql
+                    weekly_summary = get_data_lukoil(**param)
 
                     self.tab_llk.configure_columns(
                         [{'name': 'Месяц'}, {'name': 'Неделя'}, {'name': 'Часы'}, {'name': 'fte'}])
