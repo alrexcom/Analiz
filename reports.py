@@ -145,17 +145,25 @@ def report2(**params):
         (df['Проект'] == 'Т0133-КИС "Производственный учет и отчетность"'),
         ['Проект', 'ФИО', 'Дата', 'Трудозатрады за день']
     ]
-
+    # fte = DB_MANAGER.get_middle_fte()
+    fte = params['fte']
     date_range = pd.date_range(start=params['date_begin'], end=params['date_end'], freq='D')
     data_reg = frm[frm['Дата'].isin(date_range)]
-    result = data_reg.sort_values(['ФИО', 'Проект', 'Дата'])
 
-    # Создание списка столбцов
+    data_reg['Дата'] = pd.to_datetime(data_reg['Дата'], format='%d-%m-%Y').dt.strftime('%m-%Y')
+
+    # Группировка данных по Проекту и ФИО, суммирование трудозатрат
+    result = data_reg.groupby(['Дата', 'Проект', 'ФИО'], as_index=False).agg({'Трудозатрады за день': 'sum'})
+
+    # Добавление столбца fte
+    result['fte'] = round(result['Трудозатрады за день'] / int(fte), 3)
+
+    # Сортировка по Дате и ФИО
+    result = result.sort_values(by=['Дата', 'ФИО']).reset_index(drop=True)
+
+    # Подготовка данных для отображения
     columns = [{"name": col} for col in result.columns]
-    # Преобразование в список кортежей
-    data = []
-    for i in result.values:
-        data.append(tuple(i))
+    data = [tuple(row) for row in result.values]
 
     return {'columns': columns, 'data': data}
 
@@ -247,7 +255,7 @@ def report_lukoil(**params):
 
 def get_data_lukoil(**param):
     # Определяем колонки для DataFrame
-    data_fromsql=param['data_fromsql']
+    data_fromsql = param['data_fromsql']
 
     col = ['Неделя', 'п/п', 'Заявка', 'Подзадача', 'Часы', 'Регистрация', 'Квартал', 'Месяц', 'Содержание']
     df = pd.DataFrame(data_fromsql, columns=col)
@@ -259,7 +267,8 @@ def get_data_lukoil(**param):
     if df['Регистрация'].isnull().any():
         print("Некоторые даты были некорректными и будут проигнорированы.")
         df = df.dropna(subset=['Регистрация'])
-    fte = DB_MANAGER.get_middle_fte()
+    # fte = DB_MANAGER.get_middle_fte()
+    fte = param['fte']
     # Добавляем столбец fte
     if not fte == '0':
         df['fte'] = round(df['Часы'] / int(fte), 3)

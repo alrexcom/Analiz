@@ -3,6 +3,8 @@ import sqlite3
 from pathlib import Path
 import logging
 import pandas as pd
+
+import univunit
 from univunit import (format_date)
 
 DB_NAME = "test.db"
@@ -54,22 +56,25 @@ class DatabaseManager:
         :return: None
         """
         with sqlite3.connect(self.db_name) as conn:
-            ins_sql = "INSERT INTO tab_fte (JOB_DAYS, MONTH_NAME) VALUES(?,?)"
+            ins_sql = "INSERT INTO tab_fte (HOURS, MONTH_NAME) VALUES(?,?)"
             for par in list_params:
                 conn.execute(ins_sql, par)
             conn.commit()
 
-    def read_one_rec(self, current_date):
+    def read_one_rec(self, ds, dp):
         # current_date = datetime.now()
 
-        current_date = datetime.strptime(current_date, '%d-%m-%Y').date()
-        first_data = current_date.replace(day=1).strftime('%Y-%m-%d')
+        ds = datetime.strptime(ds, '%d-%m-%Y').date()
+        dp = datetime.strptime(dp, '%d-%m-%Y').date()
+
+        first_data_ds = ds.replace(day=1).strftime('%Y-%m-%d')
+        first_data_dp = dp.replace(day=1).strftime('%Y-%m-%d')
 
         with sqlite3.connect(self.db_name) as conn:
-            sql_read_table = ("SELECT FTE "
+            sql_read_table = ("SELECT SUM(HOURS) as hours "
                               "FROM main.tab_fte "
-                              "WHERE main.tab_fte.MONTH_NAME = ?;")
-            cursor = conn.execute(sql_read_table, (first_data,))
+                              "WHERE main.tab_fte.MONTH_NAME >= ? and main.tab_fte.MONTH_NAME <= ?;")
+            cursor = conn.execute(sql_read_table, (first_data_ds, first_data_dp))
             return cursor.fetchall()
 
     def read_sum_lukoil(self, **param):
@@ -148,7 +153,7 @@ class DatabaseManager:
 
     def read_all_table(self):
         with sqlite3.connect(self.db_name) as conn:
-            sql_read_table = "SELECT  JOB_DAYS, MONTH_NAME, FTE FROM tab_fte order by MONTH_NAME;"
+            sql_read_table = "SELECT  MONTH_NAME, HOURS FROM tab_fte order by MONTH_NAME;"
             cursor = conn.execute(sql_read_table)
             rows = cursor.fetchall()
             return rows

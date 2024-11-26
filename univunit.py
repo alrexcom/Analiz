@@ -6,6 +6,8 @@ import ttkbootstrap as ttk
 import pandas as pd
 import json
 
+from dateutil import relativedelta
+
 
 # from _tkinter import TclError
 
@@ -218,3 +220,8 @@ def format_date(date_str):
             # Если оба формата не подходят, выбрасываем исключение
             raise ValueError(f"Неправильный формат даты: {date_str}")
     return out_date.strftime('%Y-%m-%d')
+
+
+def months_between(ds, dp):
+    delta = relativedelta.relativedelta(dp, ds)
+    return delta.months

@@ -11,9 +11,8 @@ from reports import (get_data_report, names_reports, get_data_lukoil)
 from univunit import Table, Univunit
 import bd_unit
 
-
 DB_MANAGER = bd_unit.DatabaseManager()
-FTE_MIDDLE = DB_MANAGER.get_middle_fte()
+# FTE_MIDDLE = DB_MANAGER.get_middle_fte()
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
           'yeti', 'pulse', 'united', 'morph', 'journal', 'darkly',
           'superhero', 'solar', 'cyborg', 'vapor', 'simplex', 'cerculean']
@@ -94,18 +93,23 @@ class App(tk.Tk):
         self.ds.entry.delete(0, tk.END)
 
         self.ds.entry.insert(0, Univunit.get_first_day_of_quarter(current_date=current_date))
+        # self.ds.bind('<<DateEntrySelected>>', self.on_ds_change)
+
+        self.ds.bind("<FocusOut>", self.on_date_change)
+        # self.ds.bind("<KeyRelease>", self.on_ds_change)
 
         self.dp = DateEntry(menu_frame,
                             width=15,
                             relief="solid",
-                            dateformat='%d-%m-%Y')
+                            dateformat='%d-%m-%Y' )
 
         self.dp.pack(side=tk.LEFT, padx=10)
-        self.dp.bind('<<DateEntrySelected>>', self.on_date_change)
+        # self.dp.bind('<<DateEntrySelected>>', self.on_date_change)
+        self.dp.bind("<FocusOut>", self.on_date_change)
         self.dp.entry.delete(0, tk.END)
         self.dp.entry.insert(0, Univunit.get_last_day_of_current_month(date_format='%d-%m-%Y'))
 
-        ttk.Label(self.fte_frame, text="FTE:", width=5, anchor=tk.CENTER,
+        ttk.Label(self.fte_frame, text="1 FTE =", width=7, anchor=tk.CENTER,
                   border=2, font=("Calibri", 12, 'bold'),
                   background='#B7DEE8', foreground='white').pack(side=tk.LEFT)
 
@@ -124,7 +128,8 @@ class App(tk.Tk):
 
         menu_frame.pack(fill=tk.X)
 
-    def on_date_change(self):
+    def on_date_change(self, event):
+        # print(event)
         self.set_fte_from_db()
 
     def cmb_function(self, event):
@@ -161,7 +166,7 @@ class App(tk.Tk):
                         self.tab_llk = Table(self, height=5)
                         self.tab_llk.pack(expand=False, fill=tk.BOTH)
                     # Получаем данные и выводим в таблицу
-                    param['data_fromsql']=data_fromsql
+                    param['data_fromsql'] = data_fromsql
                     weekly_summary = get_data_lukoil(**param)
 
                     self.tab_llk.configure_columns(
@@ -187,14 +192,15 @@ class App(tk.Tk):
         self.fte.config(state=tk.NORMAL)
         self.fte.delete(0, tk.END)
         data_po = self.dp.entry.get()
+        data_s = self.ds.entry.get()
 
         if self.middle_fte.get() == 1:
-            self.fte.insert(0, str(FTE_MIDDLE))
+            # print("middle fte")
+            self.fte.insert(0, str(DB_MANAGER.get_middle_fte()))
             self.fte.config(state='readonly = FALSE')
         else:
-            fte = DB_MANAGER.read_one_rec(data_po)
-            if not fte:
-                fte = DB_MANAGER.get_middle_fte()
+            # print("from table")
+            fte = DB_MANAGER.read_one_rec(data_s, data_po)
             self.fte.insert(0, fte)
             self.fte.config(state='readonly')
 

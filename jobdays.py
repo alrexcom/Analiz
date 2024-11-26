@@ -15,11 +15,12 @@ class JobDaysApp(tk.Toplevel):
 
         self.geometry("500x400")
         self.title("Добавление рабочих дней для получения FTE")
-        self.days_var = tk.IntVar()
+        self.hours_var = tk.IntVar()
         self.middle_days_var = tk.StringVar()
 
         self.result_label = None
         self.mdf = None
+
         self.create_widgets()
 
         self.table_fte = Table(self)
@@ -39,14 +40,14 @@ class JobDaysApp(tk.Toplevel):
                   command=self.save_middle_days,
                   bg="#FF3399", fg="white", font=("Arial", 12)).grid(row=1, column=2, pady=20, padx=10, sticky="ew")
 
-        tk.Label(frame_item, text='Число рабочих дней', bg="#333333", fg="white", font=("Arial", 16)).grid(row=2,
-                                                                                                           sticky="e")
-        tk.Entry(frame_item, textvariable=self.days_var).grid(row=2, column=1, pady=20, padx=10, sticky="ew")
-
-        tk.Label(frame_item, text='Месяц из даты', bg="#333333", fg="white", font=("Arial", 16)).grid(row=3, sticky="e")
+        tk.Label(frame_item, text='Месяц из даты', bg="#333333", fg="white", font=("Arial", 16)).grid(row=2, sticky="e")
 
         self.month_year = DateEntry(master=frame_item, width=15, relief="solid", dateformat='%d-%m-%Y')
-        self.month_year.grid(row=3, column=1, pady=10, sticky="ew", padx=10)
+        self.month_year.grid(row=2, column=1, pady=10, sticky="ew", padx=10)
+
+        tk.Label(frame_item, text='Часов', bg="#333333", fg="white", font=("Arial", 16)).grid(row=3,
+                                                                                              sticky="e")
+        tk.Entry(frame_item, textvariable=self.hours_var).grid(row=3, column=1, pady=20, padx=10, sticky="ew")
 
         # Место для отображения результата входа
         self.result_label = tk.Label(frame_item, bg="#333333", fg="blue", font=("Arial", 10))
@@ -69,9 +70,9 @@ class JobDaysApp(tk.Toplevel):
         """
         updated_list = []
         for item in tuples_list:
-            month_number, date_str, work_days = item
+            date_str, work_days = item
             month_name = datetime.strptime(date_str, '%Y-%m-%d').strftime('%B')
-            updated_list.append((month_name, month_number, date_str, work_days))
+            updated_list.append((month_name, date_str, work_days))
         return updated_list
 
     def read_all_data(self):
@@ -83,31 +84,40 @@ class JobDaysApp(tk.Toplevel):
         if middle_days_var != '0':
             self.mdf.insert(0, str(middle_days_var))
 
-        self.table_fte.configure_columns([{'name': 'Месяц'}, {'name': 'Дней'}, {'name': 'Период'}, {'name': 'FTE'}])
+        # self.table_fte.configure_columns([{'name': 'Месяц'}, {'name': 'Дней'}, {'name': 'Период'}, {'name': 'Часы'}])
+        self.table_fte.configure_columns([{'name': 'Месяц'}, {'name': 'Период'}, {'name': 'Часы'}])
         data = self.add_month_name_first(DB_MANAGER.read_all_table())
         # data.append(('Month':data.strftime('%B')))
 
         self.table_fte.populate_table(data)
+        # Привязываем обновление переменной num_query при выборе строки
+        self.table_fte.tree.bind('<<TreeviewSelect>>', self.update_num_query)
+
+    def update_num_query(self, event):
+        self.month_year.entry.delete(0, tk.END)
+        cur_item = self.table_fte.tree.item(self.table_fte.tree.focus())  # Получаем данные выбранной строки
+        if cur_item:
+            values = cur_item.get('values', [])  # Получаем список значений
+            if values:
+                self.month_year.entry.insert(0, values[1])
 
     def delete_rec(self):
         try:
-            date_in = datetime.strptime(self.month_year.entry.get(), '%d-%m-%Y')
-            date_in = Univunit.first_date_of_month(date_in)
-            DB_MANAGER.delete_record(date_in)
-            self.result_label.config(text=f"За период {date_in} удалена запись")
+            DB_MANAGER.delete_record(self.month_year.entry.get())
+            self.result_label.config(text=f"За период {self.month_year.entry.get()} удалена запись")
             self.read_all_data()
         except Exception as e:
             messagebox.showinfo('Ошибка с бд', f"Данные не сохранены: {e}")
 
     def save_days(self):
         try:
-            days = self.days_var.get()
+            days = self.hours_var.get()
             if days == 0:
                 raise ValueError("Количество дней не может быть нулевым.")
             date_in = datetime.strptime(self.month_year.entry.get(), '%d-%m-%Y')
             date_in = Univunit.first_date_of_month(date_in)
-            DB_MANAGER.insert_data([(self.days_var.get(), date_in)])
-            self.result_label.config(text=f"{date_in}, число:{self.days_var.get()} добавлены")
+            DB_MANAGER.insert_data([(self.hours_var.get(), date_in)])
+            self.result_label.config(text=f"{date_in}, число:{self.hours_var.get()} добавлены")
             self.read_all_data()
         except ValueError as ve:
             messagebox.showinfo('Ошибка ввода', str(ve))
