@@ -23,8 +23,14 @@ class JobDaysApp(tk.Toplevel):
 
         self.create_widgets()
 
-        self.table_fte = Table(self)
-        self.table_fte.pack(expand=True, fill='both')
+        self.table_job = Table(self)
+        # self.table_job.menu = tk.Menu(self, tearoff=0)
+        # self.menu.add_command(label="Добавить")
+        self.table_job.menu.add_command(label="Удалить запись", command=self.delete_selected)
+        # Привязка меню к клику правой кнопки мыши
+        self.table_job.tree.bind("<Button-3>", self.show_menu)
+
+        self.table_job.pack(expand=True, fill='both')
         self.read_all_data()
 
     def create_widgets(self):
@@ -64,6 +70,15 @@ class JobDaysApp(tk.Toplevel):
         frame_buttons.grid(row=5, columnspan=2, pady=10)
         frame_item.pack()
 
+    def show_menu(self, event):
+        """
+        Показать контекстное меню при клике правой кнопкой мыши.
+        """
+        try:
+            self.table_job.menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.table_job.menu.grab_release()
+
     def add_month_name_first(self, tuples_list):
         """
             Добавление в кортеж имени месяца
@@ -85,17 +100,17 @@ class JobDaysApp(tk.Toplevel):
             self.mdf.insert(0, str(middle_days_var))
 
         # self.table_fte.configure_columns([{'name': 'Месяц'}, {'name': 'Дней'}, {'name': 'Период'}, {'name': 'Часы'}])
-        self.table_fte.configure_columns([{'name': 'Месяц'}, {'name': 'Период'}, {'name': 'Часы'}])
+        self.table_job.configure_columns([{'name': 'Месяц'}, {'name': 'Период'}, {'name': 'Часы'}])
         data = self.add_month_name_first(DB_MANAGER.read_all_table())
         # data.append(('Month':data.strftime('%B')))
 
-        self.table_fte.populate_table(data)
+        self.table_job.populate_table(data)
         # Привязываем обновление переменной num_query при выборе строки
-        self.table_fte.tree.bind('<<TreeviewSelect>>', self.update_num_query)
+        self.table_job.tree.bind('<<TreeviewSelect>>', self.update_num_query)
 
     def update_num_query(self, event):
         self.month_year.entry.delete(0, tk.END)
-        cur_item = self.table_fte.tree.item(self.table_fte.tree.focus())  # Получаем данные выбранной строки
+        cur_item = self.table_job.tree.item(self.table_job.tree.focus())  # Получаем данные выбранной строки
         if cur_item:
             values = cur_item.get('values', [])  # Получаем список значений
             if values:
@@ -108,6 +123,27 @@ class JobDaysApp(tk.Toplevel):
             self.read_all_data()
         except Exception as e:
             messagebox.showinfo('Ошибка с бд', f"Данные не сохранены: {e}")
+
+    def delete_selected(self):
+        """
+        Метод для удаления выделенных записей из таблицы.
+        """
+        selected_items = self.table_job.tree.selection()
+        selected_values = [self.table_job.tree.item(item, 'values') for item in selected_items]
+        if not selected_items:
+            self.result_label.config(text="Нет выбранных записей для удаления.", fg="red")
+            return
+
+        try:
+            for item in selected_values:
+                DB_MANAGER.delete_record(item[1])
+                # self.table_job.tree.delete(item)
+                # print(item[1])
+
+        except Exception as e:
+            messagebox.showinfo('Ошибка с бд', f"Данные не удалены: {e}")
+
+        self.result_label.config(text="Выбранные записи удалены.", fg="blue")
 
     def save_days(self):
         try:

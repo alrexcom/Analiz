@@ -33,7 +33,7 @@ class DatabaseManager:
         """
         with sqlite3.connect(self.db_name) as conn:
             sql_delete_table = ("DELETE FROM main.tab_fte "
-                                "where main.tab_fte.MONTH_NAME = ?;")
+                                "where main.tab_fte.MONTH_NAME in (?);")
             conn.execute(sql_delete_table, (date_month_name,))
 
     def delete_num_query(self, num_query):

@@ -113,8 +113,7 @@ def report1(**param):
 
     fr['Лукойл, FTE'] = fr['Лукойл, час.'].apply(lambda x: x / fte if x > 0 else 0)
 
-    # fr['DeltMes FTE'] = fact_fte - fr['Лукойл, FTE']
-    fr['DeltMes FTE'] = np.where(hours_plan > 0,fact_fte - fr['Лукойл, FTE'],0)
+    fr['DeltMes FTE'] = np.where(hours_plan > 0, fact_fte - fr['Лукойл, FTE'], 0)
 
     # Остаток часов
     fr['Остаток часов'] = np.where(hours_plan > 0, hours_plan - fr[fact_sum], 0)
@@ -124,8 +123,6 @@ def report1(**param):
     fr['Остаток FTE'] = fr['Остаток FTE'].fillna(0)
 
 
-    columns_to_round = ['Лукойл, FTE', 'DeltMes FTE', 'Остаток часов', 'Остаток FTE']
-    fr[columns_to_round] = fr[columns_to_round].round(3)
     # Суммирование по группам
     fr_grouped = fr.groupby(['Проект', 'Пользователь', 'План ч. мес.', 'План ч. нед.'], as_index=False).agg({
         'Заявок лукойл': 'sum',
@@ -144,6 +141,8 @@ def report1(**param):
                  'Фактические трудозатраты (час.) (Сумма)',
                  'План, FTE', 'Лукойл, FTE', 'Факт, FTE', 'DeltMes FTE', 'Остаток часов', 'Остаток FTE'])
 
+    columns_to_round = ['Лукойл, FTE', 'DeltMes FTE', 'Остаток часов', 'Остаток FTE']
+    fr_grouped[columns_to_round] = fr_grouped[columns_to_round].round(3)
 
     # Замена 0 на пустую строку
     fr_grouped = fr_grouped.replace(0, '')

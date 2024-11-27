@@ -15,6 +15,7 @@ from dateutil import relativedelta
 class Table(tk.Frame):
     def __init__(self, parent=None, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
+        self._selected_values = None
         self.scrollbar = ttk.Scrollbar(self)
         self.style = ttk.Style()
 
@@ -24,8 +25,35 @@ class Table(tk.Frame):
 
         # , selectmode = tk.SINGLE
         self.tree = ttk.Treeview(self, yscrollcommand=self.scrollbar.set, **kwargs)
-        # self.tree.bind('<Button-1>', self.on_select)
+        # Привязка события выбора элементов
+        self.tree.bind('<<TreeviewSelect>>', self.on_select)
+
+        # Создаем контекстное меню
+        self.menu = tk.Menu(self, tearoff=0)
+        # # self.menu.add_command(label="Добавить")
+        # self.menu.add_command(label="Удалить запись", command=self.delete_selected)
+        # # Привязка меню к клику правой кнопки мыши
+        # self.tree.bind("<Button-3>", self.show_menu)
         self.create_widgets()
+
+    def on_select(self, event):
+        """
+        Обработчик выбора строк в таблице.
+        """
+        selected_items = self.tree.selection()
+        self._selected_values = [self.tree.item(item, 'values') for item in selected_items]
+
+
+    # def delete_selected(self):
+    #     """
+    #     Удаление выделенных строк.
+    #     """
+    #     selected_items = self.tree.selection()
+    #     self._selected_values = [self.tree.item(item, 'values') for item in selected_items]
+    #     print(self._selected_values)
+    #     for item in selected_items:
+    #         # self.tree.delete(item)
+    #         print(item)
 
     def create_widgets(self):
         # Создание скроллбара
@@ -82,6 +110,14 @@ class Table(tk.Frame):
         self.tree.tag_configure('evenrow', background='#DAEEF3')
         self.tree.tag_configure('oddrow', background='#B7DEE8')
 
+    # def show_menu(self, event):
+    #     """
+    #     Показать контекстное меню при клике правой кнопкой мыши.
+    #     """
+    #     try:
+    #         self.menu.tk_popup(event.x_root, event.y_root)
+    #     finally:
+    #         self.menu.grab_release()
 
 class Univunit:
 
