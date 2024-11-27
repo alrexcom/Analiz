@@ -134,7 +134,7 @@ class App(tk.Tk):
 
     def cmb_function(self, event):
         self.num_report = event.widget.current() + 1
-        if self.num_report == 1:
+        if self.num_report in (1,2):
             self.toggle_fte_frame(True)
             self.set_fte_from_db()
         else:

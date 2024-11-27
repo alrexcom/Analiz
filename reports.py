@@ -100,6 +100,7 @@ def report1(**param):
     # fr = df[headers].loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user)]
 
     fr = df.loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user), headers]
+
     hours_plan = fte * fr['План, FTE']
     hours_plan_week = round(hours_plan / 4, 2)
     fr['План ч. мес.'] = round(hours_plan, 2)
@@ -109,23 +110,50 @@ def report1(**param):
     fact_fte = round((fr[fact_sum] / fte), 3)
 
     fr['Факт, FTE'] = fact_fte
-    fr['Лукойл, FTE'] = round((fr['Лукойл, час.'] / fte), 3)
-    fr['DeltMes FTE'] = round(fact_fte - fr['Лукойл, FTE'], 3)
-    # fr['DeltНед FTE'] = round(hours_plan_week/fte,3) - fr['Лукойл, FTE']
 
-    hours_remain = round(hours_plan - fr[fact_sum], 2)
-    fr['Остаток часов'] = hours_remain
-    fr['Остаток FTE'] = round((fr['Остаток часов'][fr['Остаток часов'] > 0] / fte), 2)
-    fr = fr.sort_values('Пользователь')
-    fr = fr.replace([np.nan, -np.inf], '')
+    fr['Лукойл, FTE'] = fr['Лукойл, час.'].apply(lambda x: x / fte if x > 0 else 0)
 
-    # fr = fr[fr['Факт, FTE'] > 0]
+    # fr['DeltMes FTE'] = fact_fte - fr['Лукойл, FTE']
+    fr['DeltMes FTE'] = np.where(hours_plan > 0,fact_fte - fr['Лукойл, FTE'],0)
+
+    # Остаток часов
+    fr['Остаток часов'] = np.where(hours_plan > 0, hours_plan - fr[fact_sum], 0)
+
+    # Остаток FTE
+    fr['Остаток FTE'] = fr.loc[(fr['Остаток часов'] > 0) & (fr['План ч. мес.'] > 0), 'Остаток часов'] / fte
+    fr['Остаток FTE'] = fr['Остаток FTE'].fillna(0)
+
+
+    columns_to_round = ['Лукойл, FTE', 'DeltMes FTE', 'Остаток часов', 'Остаток FTE']
+    fr[columns_to_round] = fr[columns_to_round].round(3)
+    # Суммирование по группам
+    fr_grouped = fr.groupby(['Проект', 'Пользователь', 'План ч. мес.', 'План ч. нед.'], as_index=False).agg({
+        'Заявок лукойл': 'sum',
+        'Лукойл, час.': 'sum',
+        'Фактические трудозатраты (час.) (Сумма)': 'sum',
+        'План, FTE': 'sum',
+        'Лукойл, FTE': 'sum',
+        'Факт, FTE': 'sum',
+        'DeltMes FTE': 'sum',
+        'Остаток часов': 'sum',
+        'Остаток FTE': 'sum',
+    })
+
     fr = fr.reindex(
-        columns=['Дата', 'Проект', 'Пользователь', 'План ч. мес.', 'План ч. нед.', 'Заявок лукойл', 'Лукойл, час.',
+        columns=['Проект', 'Пользователь', 'План ч. мес.', 'План ч. нед.', 'Заявок лукойл', 'Лукойл, час.',
                  'Фактические трудозатраты (час.) (Сумма)',
                  'План, FTE', 'Лукойл, FTE', 'Факт, FTE', 'DeltMes FTE', 'Остаток часов', 'Остаток FTE'])
-    # Преобразование DataFrame в записи NumPy
-    data = fr.to_records(index=False)
+
+
+    # Замена 0 на пустую строку
+    fr_grouped = fr_grouped.replace(0, '')
+
+    # Замена NaN и сортировка
+    fr_grouped = fr_grouped.fillna('').sort_values('Пользователь')
+
+    # # Подготовка результата
+    data = fr_grouped.to_records(index=False)
+
     columns = [{"name": col} for col in fr.columns]
 
     return {'columns': columns, 'data': data.tolist()}
