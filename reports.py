@@ -82,12 +82,14 @@ def report1(**param):
 
     df = param['df']
 
-    df_lukoil = DB_MANAGER.read_sum_lukoil(**param)
+
 
     date_begin = datetime.strptime(param['date_begin'], '%Y-%m-%d').strftime('%m.%Y')
     date_end = datetime.strptime(param['date_end'], '%Y-%m-%d').strftime('%m.%Y')
 
     df = df[(df['Дата'] >= date_begin) & (df['Дата'] <= date_end)]
+
+    df_lukoil = DB_MANAGER.read_sum_lukoil(**param)
     df = pd.merge(df, df_lukoil, on=['Проект', 'Пользователь', 'Дата'], how='left')
     # df = df.replace([np.nan, -np.inf], 0)
     user = 'Тапехин Алексей Александрович'
@@ -100,7 +102,7 @@ def report1(**param):
     # fr = df[headers].loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user)]
 
     fr = df.loc[(df['Менеджер проекта'] == user) | (df['Пользователь'] == user), headers]
-
+    # fr_out = fr[fr['Лукойл, час.'].isna() == False]
     hours_plan = fte * fr['План, FTE']
     hours_plan_week = round(hours_plan / 4, 2)
     fr['План ч. мес.'] = round(hours_plan, 2)
@@ -189,7 +191,7 @@ def report2(**params):
     result = result.sort_values(by=['Дата', 'ФИО']).reset_index(drop=True)
 
     # Подготовка данных для отображения
-    columns = [{"name": col} for col in result.columns]
+    columns = [{"name": col, 'width':100} for col in result.columns]
     data = [tuple(row) for row in result.values]
 
     return {'columns': columns, 'data': data}
@@ -344,7 +346,7 @@ def get_data_for_sla(**params):
 
     columns = [
         {"name": "№ п/п", "width": 100, "anchor": 'center'},
-        {"name": "Наименование", "width": 600, "anchor": 'w'},
+        {"name": "Наименование", "width": 600, "anchor": 'left'},
         {"name": "Значение", "width": 100, "anchor": 'center'}
     ]
 
@@ -429,20 +431,6 @@ def maintenance_sla(**params):
     date_filtered_df = fn[0]
     filtered_df = fn[1]
     columns = fn[2]
-
-    # df = params["df"]
-    # # Фильтрация строк: исключаем строки со статусом "отмена"
-    # filtered_df = df[~df[status_column].astype(str).str.contains("Отменено", case=False, na=False)]
-    # # Фильтрация по датам (между начальной и конечной датой периода)
-    # df_dates = pd.to_datetime(filtered_df[date_column], errors='coerce').dropna()
-    # end_date = Univunit.convert_date(df_dates.max() + timedelta(days=1))
-    #
-    # date_begin = datetime.strptime(params['date_begin'], '%Y-%m-%d')
-    # date_end = datetime.strptime(end_date, '%Y-%m-%d')
-    #
-    # # Фильтрация по датам (между начальной и конечной датой периода)
-    # filtered_df[date_column] = pd.to_datetime(filtered_df[date_column], errors='coerce')
-    # date_filtered_df = filtered_df[(filtered_df[date_column] >= date_begin) & (filtered_df[date_column] <= date_end)]
 
     # Подсчет строк, содержащих "CRQ" в отфильтрованных данных
     crq_data = filtered_df[check_column].astype(str).str.contains("CRQ", case=False, na=False)

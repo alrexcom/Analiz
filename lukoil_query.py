@@ -143,9 +143,9 @@ class LukoilQueries(tk.Toplevel):
         if cur_item:
             values = cur_item.get('values', [])  # Получаем список значений
             if values:
-                self.num_query.set(values[1])  # Устанавливаем значение первой колонки (Заявка)
-                self.num_task.set(values[2])  # Устанавливаем значение первой колонки (Заявка)
-                self.description.insert(tk.END, values[7])
+                self.num_query.set(values[2])  # Устанавливаем значение первой колонки (Заявка)
+                self.num_task.set(values[3])  # Устанавливаем значение первой колонки (Заявка)
+                self.description.insert(tk.END, values[8])
 
     def delete_rec(self):
         try:

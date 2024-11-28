@@ -25,15 +25,35 @@ class Table(tk.Frame):
 
         # , selectmode = tk.SINGLE
         self.tree = ttk.Treeview(self, yscrollcommand=self.scrollbar.set, **kwargs)
-        # Привязка события выбора элементов
+
+        # Configure Treeview style for borders
+        self.style.configure('Treeview',
+                             rowheight=25,
+                             bordercolor="black",
+                             borderwidth=1
+                             )
+        # self.style.map('Treeview', background=[('selected', '#D9E1F2')])
+        self.style.layout('Treeview', [
+            ('Treeview.treearea', {'sticky': 'nswe', 'border': '5'})
+        ])
+
+        # Configure headers with borders
+        self.style.configure('Treeview.Heading',
+                             background='#F79646',
+                             foreground='white',
+                             font=('Helvetica', 11, 'bold'),
+                             borderwidth=1,
+                             relief="ridge")
+
+
+        # Привязка события выбора элементов TAS000005595271
         self.tree.bind('<<TreeviewSelect>>', self.on_select)
 
         # Создаем контекстное меню
         self.menu = tk.Menu(self, tearoff=0)
-        # # self.menu.add_command(label="Добавить")
-        # self.menu.add_command(label="Удалить запись", command=self.delete_selected)
+
         # # Привязка меню к клику правой кнопки мыши
-        # self.tree.bind("<Button-3>", self.show_menu)
+        self.tree.bind("<Button-3>", self.show_menu)
         self.create_widgets()
 
     def on_select(self, event):
@@ -42,18 +62,6 @@ class Table(tk.Frame):
         """
         selected_items = self.tree.selection()
         self._selected_values = [self.tree.item(item, 'values') for item in selected_items]
-
-
-    # def delete_selected(self):
-    #     """
-    #     Удаление выделенных строк.
-    #     """
-    #     selected_items = self.tree.selection()
-    #     self._selected_values = [self.tree.item(item, 'values') for item in selected_items]
-    #     print(self._selected_values)
-    #     for item in selected_items:
-    #         # self.tree.delete(item)
-    #         print(item)
 
     def create_widgets(self):
         # Создание скроллбара
@@ -68,26 +76,37 @@ class Table(tk.Frame):
         self.scrollbar.config(command=self.tree.yview)
 
     def configure_columns(self, columns_):
+        """
+        Configures the columns of the Treeview widget dynamically.
 
-        # self.tree.column('#0', width=0, stretch=tk.NO)
-        # Настройка столбцов
-        anchor_ = tk.CENTER
-        width_ = 100
-        column = 'нет наименования'
-        self.tree['columns'] = [items["name"] for items in columns_]
+        :param columns_: A list of dictionaries where each dictionary contains:
+                         - 'name': Column name (required)
+                         - 'anchor': Alignment ('left', 'center', 'right') (optional)
+                         - 'width': Width of the column (optional)
+        """
+        if not isinstance(columns_, list) or not all(isinstance(col, dict) for col in columns_):
+            raise ValueError("Invalid input: 'columns_' must be a list of dictionaries.")
+
+        # Default settings
+        default_anchor = tk.CENTER
+        default_width = 100
+
+        # Assign column names to Treeview
+        self.tree['columns'] = [col.get("name", "Unnamed") for col in columns_]
+
+        # Hide the root column
         self.tree.column('#0', width=0, stretch=tk.NO)
-        for item in columns_:
-            for key, val in item.items():
-                if key == 'anchor':
-                    anchor_ = val
-                elif key == 'width':
-                    width_ = val
-                elif key == 'name':
-                    column = val
 
-            # print(f"column={column}, anchor={anchor_}, width={width_}")
-            self.tree.column(column, anchor=anchor_, width=width_)
-            self.tree.heading(column, text=column, anchor=tk.CENTER)
+        # Configure each column
+        for col in columns_:
+            column_name = col.get("name", "Unnamed")
+            anchor = {"left": tk.W, "center": tk.CENTER, "right": tk.E}.get(col.get("anchor", "center"),
+                                                                            default_anchor)
+            width = col.get("width", default_width)
+
+            # Apply configuration to the column
+            self.tree.column(column_name, anchor=anchor, width=width)
+            self.tree.heading(column_name, text=column_name, anchor=default_anchor)
 
     def populate_table(self, data):
         self.style.configure('Treeview.Heading', background='#F79646', foreground='white',
@@ -110,14 +129,15 @@ class Table(tk.Frame):
         self.tree.tag_configure('evenrow', background='#DAEEF3')
         self.tree.tag_configure('oddrow', background='#B7DEE8')
 
-    # def show_menu(self, event):
-    #     """
-    #     Показать контекстное меню при клике правой кнопкой мыши.
-    #     """
-    #     try:
-    #         self.menu.tk_popup(event.x_root, event.y_root)
-    #     finally:
-    #         self.menu.grab_release()
+    def show_menu(self, event):
+        """
+        Показать контекстное меню при клике правой кнопкой мыши.
+        """
+        try:
+            self.menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.menu.grab_release()
+
 
 class Univunit:
 

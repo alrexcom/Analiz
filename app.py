@@ -165,12 +165,17 @@ class App(tk.Tk):
                     if not hasattr(self, 'tab_llk'):
                         self.tab_llk = Table(self, height=5)
                         self.tab_llk.pack(expand=False, fill=tk.BOTH)
-                    # Получаем данные и выводим в таблицу
+                    # Получаем данные лукойл и выводим в таблицу
                     param['data_fromsql'] = data_fromsql
                     weekly_summary = get_data_lukoil(**param)
 
                     self.tab_llk.configure_columns(
-                        [{'name': 'Месяц'}, {'name': 'Неделя'}, {'name': 'Часы'}, {'name': 'fte'}])
+                        [
+                            {'name': 'Месяц'},
+                            {'name': 'Неделя'},
+                            {'name': 'Часы'},
+                            {'name': 'fte'}
+                        ])
                     self.tab_llk.populate_table(weekly_summary)
             else:
                 if hasattr(self, 'tab_llk'):
