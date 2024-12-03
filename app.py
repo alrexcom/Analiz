@@ -12,7 +12,7 @@ from univunit import Table, Univunit
 import bd_unit
 
 DB_MANAGER = bd_unit.DatabaseManager()
-# FTE_MIDDLE = DB_MANAGER.get_middle_fte()
+
 themes = ['cosmo', 'flatly', 'litera', 'minty', 'lumen', 'sandstone',
           'yeti', 'pulse', 'united', 'morph', 'journal', 'darkly',
           'superhero', 'solar', 'cyborg', 'vapor', 'simplex', 'cerculean']
